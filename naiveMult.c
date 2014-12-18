@@ -3,12 +3,14 @@
 #include <stdlib.h>
 #include <pthread.h>
 
+#include "naiveMult.h"
+
 #define NUM_THREADS 4
-//ndim must be devidable by NUM_THREADS and ndim=mdim
-#define ndim  512
-#define mdim  512
+//ndim must be devidable by NUM_THREADS
+int ndim = 512; //global
 
 #define IDX(Y, X) (ndim * Y + X) //rows first
+
 
 typedef enum { false, true } bool;
 
@@ -30,7 +32,7 @@ void *multiplyPart(void *args)
     {
       for (k = 0; k < ndim; k++)
       {
-        for (j = 0; j < mdim; j++)
+        for (j = 0; j < ndim; j++)
           a->output[IDX(i,k)] += a->first[IDX(i,j)] * a->second[IDX(j,k)];
       }
     }
@@ -41,14 +43,13 @@ void *multiplyPart(void *args)
 
 bool isValid(double first[], double second[], double multiplied[])
 {
-    
     int i, j, k;
     double sum = 0;
     bool valid = true;
     //standard matrix multiplication (see wikipedia pseudocode)
     for (i = 0; i < ndim; i++)
     {
-      for (k = 0; k < mdim; k++)
+      for (k = 0; k < ndim; k++)
       {
         for (j = 0; j < ndim; j++)
         {
@@ -70,22 +71,37 @@ bool isValid(double first[], double second[], double multiplied[])
 }
 
 
-int main()
+void naiveMultiplication(int n, double first[], double second[], double multiply[])
+{
+  int i, j, k;
+  double sum = 0;
+  ndim = n;
+  //standard matrix multiplication (see wikipedia pseudocode) 
+  for (i = 0; i < ndim; i++)
+      for (k = 0; k < ndim; k++)
+      {
+        for (j = 0; j < ndim; j++)
+          sum = sum + first[IDX(i,j)]*second[IDX(j,k)];
+       
+        multiply[IDX(i,k)] = sum;
+        sum = 0;
+      }
+}
+
+
+void parallelNaive(int n, double first[], double second[], double multiply[])
 {
   int c, d, k, sI, rc, i;
   pthread_t thread[NUM_THREADS];
   threadArguments threadArgs[NUM_THREADS];
   pthread_attr_t attr;
   void *status;
-  double *first=malloc(ndim*mdim*sizeof(double));
-  double *second=malloc(ndim*mdim*sizeof(double));
-  double *multiply=malloc(ndim*mdim*sizeof(double));
 
-  srand(time(NULL));
+  ndim = n;
 
   for (c = 0 ; c < ndim; c++)
   {
-    for (d = 0 ; d < mdim; d++)
+    for (d = 0 ; d < ndim; d++)
     {
       first[IDX(c,d)] = rand() % 100; //int between 0 - 1000
       second[IDX(c,d)] = rand() % 100;
@@ -130,13 +146,10 @@ int main()
   clock_t end = clock();
   float seconds = (float)(end - start) / CLOCKS_PER_SEC;
 
-  printf("matrix multiplication took: %f\n", seconds);
+  printf("parallel matrix multiplication took: %f\n", seconds);
 
   if (isValid(first, second, multiply))
     printf("valid matrix multiplication\n");
 
 
-  printf("finished \n");
-
-  return 0;
 }
