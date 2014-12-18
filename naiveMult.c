@@ -1,7 +1,10 @@
 #include <stdio.h>
 #include <time.h>
 #include <stdlib.h>
+#include <pthread.h>
 
+#define NUM_THREADS 4
+//ndim must be devidable by NUM_THREADS and ndim=mdim
 #define ndim  512
 #define mdim  512
 
@@ -9,37 +12,53 @@
 
 typedef enum { false, true } bool;
 
-void multiplyPart(int sI, double first[], double second[], double output[])
+typedef struct {
+  int startColumn;
+  int lastColumn;
+  double *first;
+  double *second;
+  double *output;
+
+} threadArguments;
+
+void *multiplyPart(void *args)
 {
-  int x,y;
-    for (x = 0; x < ndim; x++)
+    int k,j,i;
+    threadArguments *a = (threadArguments*) args;
+    
+    for (i=a->startColumn; i <= a->lastColumn; i++)
     {
-      for (y = 0; y < mdim; y++)
-        output[IDX(x,y)] += first[IDX(x,sI)] * second[IDX(sI,y)];
+      for (k = 0; k < ndim; k++)
+      {
+        for (j = 0; j < mdim; j++)
+          a->output[IDX(i,k)] += a->first[IDX(i,j)] * a->second[IDX(j,k)];
+      }
     }
+
+    pthread_exit((void*) args);
 }
 
 
 bool isValid(double first[], double second[], double multiplied[])
 {
     
-    int c, d, k;
+    int i, j, k;
     double sum = 0;
     bool valid = true;
-    //standard matrix multiplication
-    for (c = 0; c < ndim; c++)
+    //standard matrix multiplication (see wikipedia pseudocode)
+    for (i = 0; i < ndim; i++)
     {
-      for (d = 0; d < mdim; d++)
+      for (k = 0; k < mdim; k++)
       {
-        for (k = 0; k < ndim; k++)
+        for (j = 0; j < ndim; j++)
         {
-          sum = sum + first[IDX(c,k)]*second[IDX(k,d)];
+          sum = sum + first[IDX(i,j)]*second[IDX(j,k)];
         }
  
-        if (multiplied[IDX(c,d)] != sum)
+        if (multiplied[IDX(i,k)] != sum)
         {
           valid = false;
-          printf("result matrix not valid in row %d, col %d \n", c, d);
+          printf("result matrix not valid in row %d, col %d \n", i, k);
           break;
         }
 
@@ -53,15 +72,16 @@ bool isValid(double first[], double second[], double multiplied[])
 
 int main()
 {
-
-  srand(time(NULL));
-
-
-  int c, d, k, sI;
+  int c, d, k, sI, rc, i;
+  pthread_t thread[NUM_THREADS];
+  threadArguments threadArgs[NUM_THREADS];
+  pthread_attr_t attr;
+  void *status;
   double *first=malloc(ndim*mdim*sizeof(double));
   double *second=malloc(ndim*mdim*sizeof(double));
   double *multiply=malloc(ndim*mdim*sizeof(double));
-  //  int **first, second[ndim][mdim], multiply[ndim][mdim];
+
+  srand(time(NULL));
 
   for (c = 0 ; c < ndim; c++)
   {
@@ -69,14 +89,42 @@ int main()
     {
       first[IDX(c,d)] = rand() % 100; //int between 0 - 1000
       second[IDX(c,d)] = rand() % 100;
+      multiply[IDX(c,d)] = 0;
     }
   
   }
   clock_t start = clock();
 
-  for (sI=0; sI < ndim; sI++)
+  pthread_attr_init(&attr);
+  pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+
+  for (i = 0; i < NUM_THREADS; i++)
   {
-    multiplyPart(sI,first,second,multiply);
+      threadArgs[i].startColumn = ndim / NUM_THREADS * i;
+      threadArgs[i].lastColumn = (ndim / NUM_THREADS * (i+1)) - 1;
+      threadArgs[i].first = first;
+      threadArgs[i].second = second;
+      threadArgs[i].output = multiply;
+
+      rc = pthread_create( &thread[i],  &attr, multiplyPart, (void*) &threadArgs[i]);
+      if(rc)
+      {
+        fprintf(stderr,"Error - pthread_create() return code: %d\n",rc);
+        exit(EXIT_FAILURE);
+      }
+  }
+
+
+  /* Free attribute and wait for the other threads */
+  pthread_attr_destroy(&attr);
+  for (i = 0; i < NUM_THREADS; i++)
+  {
+    rc = pthread_join(thread[i], &status);
+    if (rc) 
+    {
+       printf("ERROR; return code from pthread_join() is %d\n", rc);
+       exit(EXIT_FAILURE);
+    }
   }
 
   clock_t end = clock();

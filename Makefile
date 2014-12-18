@@ -1,5 +1,5 @@
 TARGET = bin/matrixmult
-LIBS = -lm
+LIBS = -lm -lpthread 
 CC = gcc
 CFLAGS = -g -Wall
 
@@ -10,7 +10,7 @@ default: clean $(TARGET) run
 all: default
 
 run: $(TARGET)
-	./matrixmult
+	bin/matrixmult
 
 
 OBJECTS = $(patsubst %.c, %.o, $(wildcard *.c))
