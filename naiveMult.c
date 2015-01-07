@@ -5,9 +5,9 @@
 
 #include "naiveMult.h"
 
-#define NUM_THREADS 4
-//ndim must be devidable by NUM_THREADS
-int ndim = 512; //global
+// #define NUM_THREADS 1
+//ndim must be dividable by NUM_THREADS
+// int ndim = 64; //global
 
 #define IDX(Y, X) (ndim * Y + X) //rows first
 
@@ -25,19 +25,27 @@ typedef struct {
 
 void *multiplyPart(void *args)
 {
-    int k,j,i;
-    threadArguments *a = (threadArguments*) args;
-    
-    for (i=a->startColumn; i <= a->lastColumn; i++)
-    {
-      for (k = 0; k < ndim; k++)
-      {
-        for (j = 0; j < ndim; j++)
-          a->output[IDX(i,k)] += a->first[IDX(i,j)] * a->second[IDX(j,k)];
+  clock_t start = clock();
+  int k,j,i;
+  float q;
+  threadArguments *a = (threadArguments*) args;
+
+
+  for (i=a->startColumn; i <= a->lastColumn; i++) {
+    for (k = 0; k < ndim; k++) {
+      for (j = 0; j < ndim; j++) {
+        a->output[IDX(i,k)] += a->first[IDX(i,j)] * a->second[IDX(j,k)];
+        // q = i + j;
+        // a->output[IDX(i,k)] = i + j;
       }
     }
+  }
 
-    pthread_exit((void*) args);
+  clock_t end = clock();
+  float seconds = (float)(end - start) / CLOCKS_PER_SEC;
+  printf("naive parallel matrix multiplication (%d-%d) took: %f\n", a->startColumn, a->lastColumn, seconds);
+
+  pthread_exit((void*) args);
 }
 
 
@@ -55,7 +63,7 @@ bool isValid(double first[], double second[], double multiplied[])
         {
           sum = sum + first[IDX(i,j)]*second[IDX(j,k)];
         }
- 
+
         if (multiplied[IDX(i,k)] != sum)
         {
           valid = false;
@@ -71,25 +79,33 @@ bool isValid(double first[], double second[], double multiplied[])
 }
 
 
-void naiveMultiplication(int n, double first[], double second[], double multiply[])
+void naiveMultiplication(double first[], double second[], double multiply[])
 {
+  clock_t start = clock();
   int i, j, k;
   double sum = 0;
-  ndim = n;
-  //standard matrix multiplication (see wikipedia pseudocode) 
+
+  //standard matrix multiplication (see wikipedia pseudocode)
   for (i = 0; i < ndim; i++)
       for (k = 0; k < ndim; k++)
       {
         for (j = 0; j < ndim; j++)
           sum = sum + first[IDX(i,j)]*second[IDX(j,k)];
-       
+
         multiply[IDX(i,k)] = sum;
         sum = 0;
       }
+
+  clock_t end = clock();
+  float seconds = (float)(end - start) / CLOCKS_PER_SEC;
+
+
+  printf("naive matrix multiplication took: %f\n", seconds);
+
 }
 
 
-void parallelNaive(int n, double first[], double second[], double multiply[])
+void parallelNaive(double first[], double second[], double multiply[])
 {
   int c, d, k, sI, rc, i;
   pthread_t thread[NUM_THREADS];
@@ -97,7 +113,8 @@ void parallelNaive(int n, double first[], double second[], double multiply[])
   pthread_attr_t attr;
   void *status;
 
-  ndim = n;
+  printf("NUM_THREADS: %d\n", NUM_THREADS);
+  printf("ndim: %d\n", ndim);
 
   for (c = 0 ; c < ndim; c++)
   {
@@ -107,7 +124,7 @@ void parallelNaive(int n, double first[], double second[], double multiply[])
       second[IDX(c,d)] = rand() % 100;
       multiply[IDX(c,d)] = 0;
     }
-  
+
   }
   clock_t start = clock();
 
@@ -136,7 +153,7 @@ void parallelNaive(int n, double first[], double second[], double multiply[])
   for (i = 0; i < NUM_THREADS; i++)
   {
     rc = pthread_join(thread[i], &status);
-    if (rc) 
+    if (rc)
     {
        printf("ERROR; return code from pthread_join() is %d\n", rc);
        exit(EXIT_FAILURE);
@@ -148,8 +165,8 @@ void parallelNaive(int n, double first[], double second[], double multiply[])
 
   printf("parallel matrix multiplication took: %f\n", seconds);
 
-  if (isValid(first, second, multiply))
-    printf("valid matrix multiplication\n");
+  // if (isValid(first, second, multiply))
+  //   printf("valid matrix multiplication\n");
 
 
 }

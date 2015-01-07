@@ -1,5 +1,5 @@
 TARGET = bin/matrixmult
-LIBS = -lm -lpthread 
+LIBS = -lm -lpthread
 CC = gcc
 CFLAGS = -g -Wall
 
@@ -17,12 +17,12 @@ OBJECTS = $(patsubst %.c, %.o, $(wildcard *.c))
 HEADERS = $(wildcard *.h)
 
 %.o: %.c $(HEADERS)
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@ -O3
 
 .PRECIOUS: $(TARGET) $(OBJECTS)
 
 $(TARGET): $(OBJECTS)
-	$(CC) $(OBJECTS) -Wall $(LIBS) -o $@
+	$(CC) $(OBJECTS) -Wall $(LIBS) -o $@ -O3
 
 clean:
 	-rm -f *.o
