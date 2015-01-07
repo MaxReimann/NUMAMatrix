@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <time.h>
+#include <time.h>
+#include <sys/time.h>
 #include <stdlib.h>
 #include <string.h>
 #include "naiveMult.h"
@@ -20,6 +22,7 @@ int main(int argc, char **argv)
 	int i, c, d;
 	printf("NUM_THREADS: %d\n", NUM_THREADS);
 	printf("ndim: %d\n", ndim);
+	setbuf(stdout, NULL);
 
 
 	for (c = 0 ; c < ndim; c++)

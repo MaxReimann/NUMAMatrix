@@ -11,6 +11,7 @@
 
 #include <stdio.h>
 #include <time.h>
+#include <sys/time.h>
 #include <stdlib.h>
 #include "strassenutil.h"
 #define BILLION 1E9

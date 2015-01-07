@@ -1,7 +1,7 @@
 TARGET = bin/matrixmult
 LIBS = -lm -lpthread -lrt
 CC = gcc
-CFLAGS = -g -Wall
+CFLAGS = -g -Wall --std=gnu11
 
 .PHONY: default all clean
 
@@ -10,7 +10,13 @@ default: clean $(TARGET) run
 all: default
 
 run: $(TARGET)
-	bin/matrixmult 0 1 2
+	@echo "" >> output.log
+	@date >> output.log
+	@echo "" >> output.log
+	@bin/matrixmult 0 1 2 | tee -a output.log
+
+	@echo "" >> output.log
+	@echo "" >> output.log
 
 
 OBJECTS = $(patsubst %.c, %.o, $(wildcard *.c))

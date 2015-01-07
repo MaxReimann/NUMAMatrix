@@ -1,6 +1,7 @@
+// #define _POSIX_C_SOURCE >= 199309L
+#include <time.h>
 #include <sys/time.h>
 #include <stdio.h>
-#include <time.h>
 #include <stdlib.h>
 #include <pthread.h>
 
@@ -115,7 +116,7 @@ void naiveMultiplication(double first[], double second[], double multiply[])
 
 void parallelNaive(double first[], double second[], double multiply[])
 {
-  int rc, i;
+  int rc;
   pthread_t thread[NUM_THREADS];
   threadArguments threadArgs[NUM_THREADS];
   pthread_attr_t attr;
@@ -129,7 +130,7 @@ void parallelNaive(double first[], double second[], double multiply[])
   pthread_attr_init(&attr);
   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
-  for (i = 0; i < NUM_THREADS; i++)
+  for (int i = 0; i < NUM_THREADS; i++)
   {
       threadArgs[i].startColumn = ndim / NUM_THREADS * i;
       threadArgs[i].lastColumn = (ndim / NUM_THREADS * (i+1)) - 1;
@@ -148,7 +149,7 @@ void parallelNaive(double first[], double second[], double multiply[])
 
   /* Free attribute and wait for the other threads */
   pthread_attr_destroy(&attr);
-  for (i = 0; i < NUM_THREADS; i++)
+  for (int i = 0; i < NUM_THREADS; i++)
   {
     rc = pthread_join(thread[i], &status);
     if (rc)
