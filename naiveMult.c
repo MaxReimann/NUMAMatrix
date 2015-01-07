@@ -43,7 +43,7 @@ void *multiplyPart(void *args)
 
   clock_t end = clock();
   float seconds = (float)(end - start) / CLOCKS_PER_SEC;
-  printf("naive parallel matrix multiplication (%d-%d) took: %f\n", a->startColumn, a->lastColumn, seconds);
+  printf("naive parallel matrix multiplication (%d-%d) took: %f\n\n", a->startColumn, a->lastColumn, seconds);
 
   pthread_exit((void*) args);
 }
@@ -85,6 +85,9 @@ void naiveMultiplication(double first[], double second[], double multiply[])
   int i, j, k;
   double sum = 0;
 
+  printf("Running naiveMultiplication\n");
+
+
   //standard matrix multiplication (see wikipedia pseudocode)
   for (i = 0; i < ndim; i++)
       for (k = 0; k < ndim; k++)
@@ -99,9 +102,7 @@ void naiveMultiplication(double first[], double second[], double multiply[])
   clock_t end = clock();
   float seconds = (float)(end - start) / CLOCKS_PER_SEC;
 
-
-  printf("naive matrix multiplication took: %f\n", seconds);
-
+  printf("naiveMultiplication took: %f\n\n", seconds);
 }
 
 
@@ -113,8 +114,7 @@ void parallelNaive(double first[], double second[], double multiply[])
   pthread_attr_t attr;
   void *status;
 
-  printf("NUM_THREADS: %d\n", NUM_THREADS);
-  printf("ndim: %d\n", ndim);
+  printf("Running parallelNaive\n");
 
   for (c = 0 ; c < ndim; c++)
   {
@@ -163,7 +163,7 @@ void parallelNaive(double first[], double second[], double multiply[])
   clock_t end = clock();
   float seconds = (float)(end - start) / CLOCKS_PER_SEC;
 
-  printf("parallel matrix multiplication took: %f\n", seconds);
+  printf("parallelNaive took: %f\n\n", seconds);
 
   // if (isValid(first, second, multiply))
   //   printf("valid matrix multiplication\n");

@@ -10,7 +10,7 @@ default: clean $(TARGET) run
 all: default
 
 run: $(TARGET)
-	bin/matrixmult
+	bin/matrixmult 0 1 2
 
 
 OBJECTS = $(patsubst %.c, %.o, $(wildcard *.c))

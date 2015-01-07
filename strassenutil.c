@@ -192,6 +192,7 @@ void check(int e, char *s)
 
 void strassenMultiplication(int n, double first[], double second[], double multiply[])
 {
+	printf("Running strassenMultiplication\n");
 	matrix a, b, c, d;
 	a = strassen_newmatrix(n);
 	b = strassen_newmatrix(n);
@@ -205,6 +206,6 @@ void strassenMultiplication(int n, double first[], double second[], double multi
 	strassen_multiply(n, a, b, c, d);	/* strassen algorithm */
 	clock_t end = clock();
 	float seconds = (float)(end - start) / CLOCKS_PER_SEC;
-	printf("strassen took:%f seconds\n", seconds);
+	printf("strassenMultiplication took:%f seconds\n\n", seconds);
 }
 
