@@ -13,6 +13,7 @@
 #include <time.h>
 #include <stdlib.h>
 #include "strassenutil.h"
+#define BILLION 1E9
 
 
 /* Fill the matrix a with random values between 0 and 1 */
@@ -202,7 +203,7 @@ void strassenMultiplication(int n, double first[], double second[], double multi
 	strassen_set(n, b, second, 0, 0);
 
 
-	struct timespec start, end, res;
+	struct timespec start, end;
   clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start);
 
 	strassen_multiply(n, a, b, c, d);	/* strassen algorithm */

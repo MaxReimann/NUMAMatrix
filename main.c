@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "naiveMult.h"
+#include "strassenutil.h"
 
 // #define ndim  1024
 #define IDX(Y, X) (ndim * Y + X) //rows first

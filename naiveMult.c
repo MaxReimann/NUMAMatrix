@@ -27,8 +27,7 @@ typedef struct {
 void *multiplyPart(void *args)
 {
   int k,j,i;
-  float sum;
-  struct timespec start, end, res;
+  struct timespec start, end;
   clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start);
   threadArguments *a = (threadArguments*) args;
 
@@ -87,7 +86,7 @@ bool isValid(double first[], double second[], double multiplied[])
 void naiveMultiplication(double first[], double second[], double multiply[])
 {
   int i, j, k;
-  struct timespec start, end, res;
+  struct timespec start, end;
   double sum = 0;
   clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start);
 
@@ -116,7 +115,7 @@ void naiveMultiplication(double first[], double second[], double multiply[])
 
 void parallelNaive(double first[], double second[], double multiply[])
 {
-  int c, d, k, sI, rc, i;
+  int rc, i;
   pthread_t thread[NUM_THREADS];
   threadArguments threadArgs[NUM_THREADS];
   pthread_attr_t attr;
@@ -124,8 +123,8 @@ void parallelNaive(double first[], double second[], double multiply[])
 
   printf("Running parallelNaive\n");
 
-  struct timespec start, end, res;
-  clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start);
+  struct timespec start, end;
+  clock_gettime(CLOCK_MONOTONIC, &start);
 
   pthread_attr_init(&attr);
   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
@@ -160,7 +159,7 @@ void parallelNaive(double first[], double second[], double multiply[])
   }
 
 
-  clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end);
+  clock_gettime(CLOCK_MONOTONIC, &end);
   float seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
 
   printf("parallelNaive took: %f\n\n", seconds);

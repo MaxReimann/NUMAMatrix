@@ -30,7 +30,6 @@
 * is important to do before the value of BREAK is chosen optimally.
 *
 */
-
 #include "strassen.h"
 
 /* c = a*b */
