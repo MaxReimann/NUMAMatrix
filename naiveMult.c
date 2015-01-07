@@ -1,3 +1,4 @@
+#include <sys/time.h>
 #include <stdio.h>
 #include <time.h>
 #include <stdlib.h>
@@ -10,7 +11,7 @@
 // int ndim = 64; //global
 
 #define IDX(Y, X) (ndim * Y + X) //rows first
-
+#define BILLION 1E9
 
 typedef enum { false, true } bool;
 
@@ -25,24 +26,28 @@ typedef struct {
 
 void *multiplyPart(void *args)
 {
-  clock_t start = clock();
   int k,j,i;
-  float q;
+  float sum;
+  struct timespec start, end, res;
+  clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start);
   threadArguments *a = (threadArguments*) args;
 
+
+  double* first = a->first;
+  double* second = a->second;
+  double* output = a->output;
 
   for (i=a->startColumn; i <= a->lastColumn; i++) {
     for (k = 0; k < ndim; k++) {
       for (j = 0; j < ndim; j++) {
-        a->output[IDX(i,k)] += a->first[IDX(i,j)] * a->second[IDX(j,k)];
-        // q = i + j;
-        // a->output[IDX(i,k)] = i + j;
+        output[IDX(i,k)] += first[IDX(i,j)] * second[IDX(j,k)];
       }
     }
   }
 
-  clock_t end = clock();
-  float seconds = (float)(end - start) / CLOCKS_PER_SEC;
+  clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end);
+  float seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
+
   printf("naive parallel matrix multiplication (%d-%d) took: %f\n\n", a->startColumn, a->lastColumn, seconds);
 
   pthread_exit((void*) args);
@@ -81,26 +86,29 @@ bool isValid(double first[], double second[], double multiplied[])
 
 void naiveMultiplication(double first[], double second[], double multiply[])
 {
-  clock_t start = clock();
   int i, j, k;
+  struct timespec start, end, res;
   double sum = 0;
+  clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start);
 
   printf("Running naiveMultiplication\n");
-
 
   //standard matrix multiplication (see wikipedia pseudocode)
   for (i = 0; i < ndim; i++)
       for (k = 0; k < ndim; k++)
       {
         for (j = 0; j < ndim; j++)
-          sum = sum + first[IDX(i,j)]*second[IDX(j,k)];
+          // sum = sum + first[IDX(i,j)]*second[IDX(j,k)];
+          multiply[IDX(i,k)] = sum + first[IDX(i,j)]*second[IDX(j,k)];
 
-        multiply[IDX(i,k)] = sum;
-        sum = 0;
+
+        // multiply[IDX(i,k)] = sum;
+        // sum = 0;
       }
 
-  clock_t end = clock();
-  float seconds = (float)(end - start) / CLOCKS_PER_SEC;
+
+  clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end);
+  double seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
 
   printf("naiveMultiplication took: %f\n\n", seconds);
 }
@@ -116,17 +124,8 @@ void parallelNaive(double first[], double second[], double multiply[])
 
   printf("Running parallelNaive\n");
 
-  for (c = 0 ; c < ndim; c++)
-  {
-    for (d = 0 ; d < ndim; d++)
-    {
-      first[IDX(c,d)] = rand() % 100; //int between 0 - 1000
-      second[IDX(c,d)] = rand() % 100;
-      multiply[IDX(c,d)] = 0;
-    }
-
-  }
-  clock_t start = clock();
+  struct timespec start, end, res;
+  clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start);
 
   pthread_attr_init(&attr);
   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
@@ -160,8 +159,9 @@ void parallelNaive(double first[], double second[], double multiply[])
     }
   }
 
-  clock_t end = clock();
-  float seconds = (float)(end - start) / CLOCKS_PER_SEC;
+
+  clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end);
+  float seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
 
   printf("parallelNaive took: %f\n\n", seconds);
 

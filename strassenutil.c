@@ -202,10 +202,14 @@ void strassenMultiplication(int n, double first[], double second[], double multi
 	strassen_set(n, b, second, 0, 0);
 
 
-	clock_t start = clock();
+	struct timespec start, end, res;
+  clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start);
+
 	strassen_multiply(n, a, b, c, d);	/* strassen algorithm */
-	clock_t end = clock();
-	float seconds = (float)(end - start) / CLOCKS_PER_SEC;
+
+  clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end);
+  float seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
+
 	printf("strassenMultiplication took:%f seconds\n\n", seconds);
 }
 
