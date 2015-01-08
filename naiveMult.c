@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <sched.h>
+#include <numa.h>
 
 #include "naiveMult.h"
 
@@ -31,6 +33,7 @@ void *multiplyPart(void *args)
   struct timespec start, end;
   clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start);
   threadArguments *a = (threadArguments*) args;
+  // numa_run_on_node(1);
 
 
   double* first = a->first;

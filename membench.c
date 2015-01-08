@@ -12,62 +12,7 @@
 #include <assert.h>
 #include "util.h"
 
-
-void
-parsearg()
-{
-  int opt;
-
-  option.usecore = 1;
-  option.access_size = 1 << 20;
-  option.timeout = 2; // * 1000 * 1000.0; // default timeout is 10 seconds
-
-  // while ((opt = getopt(argc, argv, "c:s:t:")) != -1) {
-  //   switch (opt) {
-  //   case 'c':
-  //     option.usecore = atoi(optarg);
-  //     break;
-  //   case 's':
-  //     option.access_size = procsuffix(optarg);
-  //     break;
-  //   case 't':
-  //     option.timeout = atof(optarg); // * 1000000.0;
-  //     break;
-  //   default:
-  //     fprintf(stderr, "Usage : %s [-c cpuno] [-s accesssize] [-t timeout(sec)]\n", argv[0]);
-  //     exit(EXIT_FAILURE);
-  //   }
-  // }
-}
-
-static inline uint64_t
-read_tsc(void)
-{
-    uintptr_t ret;
-    uint32_t eax, edx;
-    __asm__ __volatile__("cpuid; rdtsc;"
-                         : "=a" (eax) , "=d" (edx)
-                         :
-                         : "%ebx", "%ecx");
-    ret = ((uint64_t)edx) << 32 | eax;
-    return ret;
-}
-
-static inline void
-swap_long(long *ptr1, long *ptr2)
-{
-    long tmp;
-    if (ptr1 != ptr2) {
-        tmp = *ptr1;
-        *ptr1 = *ptr2;
-        *ptr2 = tmp;
-    }
-}
-
-void
-numa_membench(mem_bench_info_t *mbinfo)
-{
-
+void numa_membench(mem_bench_info_t *mbinfo) {
   assert(mbinfo->destnode <= numa_max_node());
 
   {
@@ -75,6 +20,7 @@ numa_membench(mem_bench_info_t *mbinfo)
     size = numa_node_size(mbinfo->destnode, &freep);
     //printf("node %d : total = %ld(B), free = %ld(B)\n", mbinfo->destnode, size, freep);
     assert(freep >= mbinfo->working_size);
+
 
     mbinfo->working_area =
       (long *)numa_alloc_onnode(mbinfo->working_size, mbinfo->destnode);
@@ -91,9 +37,7 @@ numa_membench(mem_bench_info_t *mbinfo)
   numa_free(mbinfo->working_area, mbinfo->working_size);
 }
 
-int
-notMain()
-{
+int notMain() {
   int i;
   cpu_set_t cpuset;
   mem_bench_info_t mbinfo;
@@ -101,9 +45,14 @@ notMain()
   if (numa_available() == -1){
     fprintf(stderr, "numa functions aren't available\n");
     exit(EXIT_FAILURE);
+  } else {
+    printf("numa functions are available\n");
   }
 
-  parsearg();
+  option.usecore = 1;
+  option.access_size = 1 << 20;
+  option.timeout = 2; // * 1000 * 1000.0; // default timeout is 10 seconds
+
   mbinfo.working_size = option.access_size;
 
   // set affinity
@@ -115,6 +64,7 @@ notMain()
   printf("===========================================\n"
          "memory benchmark\n"
          "===========================================\n");
+
   for (i = 0; i <= numa_max_node(); i++) {
     mbinfo.destnode = i;
     mbinfo.pc.ops = 0;
