@@ -55,3 +55,7 @@ void sub(int, matrix, matrix, matrix);
 #define d12 d->p[1]
 #define d21 d->p[2]
 #define d22 d->p[3]
+#define p11 p->p[0]
+#define p12 p->p[1]
+#define p21 p->p[2]
+#define p22 p->p[3]
