@@ -7,6 +7,8 @@
 #include "naiveMult.h"
 #include "strassenutil.h"
 
+#include "membench.h"
+
 // #define ndim  1024
 #define IDX(Y, X) (ndim * Y + X) //rows first
 
@@ -24,6 +26,7 @@ int main(int argc, char **argv)
 	printf("ndim: %d\n", ndim);
 	setbuf(stdout, NULL);
 
+	notMain();
 
 	for (c = 0 ; c < ndim; c++)
 	{
