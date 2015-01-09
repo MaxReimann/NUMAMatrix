@@ -58,6 +58,7 @@ bool isValid(double first[], double second[], double multiplied[])
     int i, j, k;
     double sum = 0;
     bool valid = true;
+    printf("\n");
     //standard matrix multiplication (see wikipedia pseudocode)
     for (i = 0; i < ndim; i++)
     {
@@ -68,17 +69,20 @@ bool isValid(double first[], double second[], double multiplied[])
           sum = sum + first[IDX(i,j)]*second[IDX(j,k)];
         }
 
+        // /printf("%f ",sum);
         if (multiplied[IDX(i,k)] != sum)
         {
           valid = false;
-          printf("result matrix not valid in row %d, col %d \n", i, k);
-          printf("naive: %f strassen %f\n",sum, multiplied[IDX(i,k)]);
-          break;
+           printf("result matrix not valid in row %d, col %d \n", i, k);
+           printf("naive: %f strassen %f\n",sum, multiplied[IDX(i,k)]);
+           break;
         }
 
         sum = 0;
       }
+      // printf("\n");
     }
+    // printf("\n");
 
     printf("valid matrix multiplication\n");
 

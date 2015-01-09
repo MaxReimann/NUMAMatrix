@@ -53,9 +53,7 @@ void strassen_set(int n, matrix a, double flatMatrix[], int startRow, int startC
         for (i = 0; i < n; i++)
         {
             for (j = 0; j < n; j++)
-            {
                 p[i][j] = flatMatrix[INDEX((startRow + i), (startColumn + j))];
-            }
 
         }
 
@@ -84,8 +82,14 @@ void strassen_get(int n, matrix a, double outputMat[], int startRow, int startCo
         double **p = a->d;
 
         for (i = 0; i < n; i++)
+        {
             for (j = 0; j < n; j++)
+            {
                 outputMat[INDEX((startRow + i), (startColumn + j))] = p[i][j];
+                // printf("%f ", p[i][j] );
+            }
+            // printf("\n");
+        }
 
 
     }
@@ -243,6 +247,39 @@ void check(int e, char *s)
     {
         fprintf(stderr, "Fatal error -> %s\n", s);
         exit(1);
+    }
+}
+
+void printMatrix(int n, matrix a)
+{
+#define INDEX(Y, X) (ndim * Y + X) //rows first
+    if (n <= BREAK)
+    {
+        int i, j;
+        double **p = a->d;
+
+        for (i = 0; i < n; i++)
+        {
+            for (j = 0; j < n; j++)
+                printf("%f ", p[i][j] );
+            printf("\n");
+        }
+
+
+    }
+    else
+    {
+
+        printf("\n");
+        n /= 2;
+
+        printMatrix(n, a11);
+        printMatrix(n, a12);
+        printMatrix(n, a21);
+        printMatrix(n, a22);
+
+
+        printf("\n");
     }
 }
 

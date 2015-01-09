@@ -10,14 +10,15 @@
 
 
 #define IDX(Y, X) (ndim * Y + X) //rows first
+
 const int NUM_THREADS = 4;
-const int ndim = 64;
+const int ndim = 512;
 
 int main(int argc, char **argv)
 {
 
 
-    srand(time(NULL));
+    srand(1);
     double *first = malloc(ndim * ndim * sizeof(double));
     double *second = malloc(ndim * ndim * sizeof(double));
     double *multiply = malloc(ndim * ndim * sizeof(double));
@@ -37,6 +38,24 @@ int main(int argc, char **argv)
 
         }
     }
+
+    // for (c = 0 ; c < ndim; c++)
+    // {
+    //     for (d = 0 ; d < ndim; d++)
+    //     {
+    //         printf("%f ", first[IDX(c, d)]);
+    //     }
+    //     printf("\n");
+    // }
+    // printf("\n");
+    // for (c = 0 ; c < ndim; c++)
+    // {
+    //     for (d = 0 ; d < ndim; d++)
+    //     {
+    //         printf("%f ", second[IDX(c, d)]);
+    //     }
+    //     printf("\n");
+    // }
 
     for (i = 1; i < argc; ++i)
     {
@@ -62,7 +81,7 @@ int main(int argc, char **argv)
                     multiply[IDX(c, d)] = 0;
                 }
             }
-            strassenMultiplication(ndim, first, second, multiply);
+            strassenParallel(ndim, first, second, multiply);
             isValid(first, second, multiply);
         }
     }

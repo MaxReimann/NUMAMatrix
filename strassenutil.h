@@ -15,3 +15,4 @@ void strassen_discrepancy(int, matrix, matrix);	/* print places where
 int diff(double, double);	/* do two doubles differ? */
 void check(int, char *);	/* check for error conditions */
 
+void printMatrix(int n, matrix a);
