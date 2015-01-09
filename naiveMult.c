@@ -6,7 +6,7 @@
 #include <pthread.h>
 #include <sched.h>
 
-
+#include "globals.h"
 #include "naiveMult.h"
 
 // #define NUM_THREADS 1
@@ -39,12 +39,14 @@ void *multiplyPart(void *args)
   double* first = a->first;
   double* second = a->second;
   double* output = a->output;
+  double sum;
 
   for (i=a->startColumn; i <= a->lastColumn; i++) {
     for (k = 0; k < ndim; k++) {
-      for (j = 0; j < ndim; j++) {
-        output[IDX(i,k)] += first[IDX(i,j)] * second[IDX(j,k)];
+      for (sum=0,j = 0; j < ndim; j++) {
+        sum += first[IDX(i,j)] * second[IDX(j,k)];
       }
+      output[IDX(i,k)] = sum;
     }
   }
 
@@ -76,12 +78,15 @@ bool isValid(double first[], double second[], double multiplied[])
         {
           valid = false;
           printf("result matrix not valid in row %d, col %d \n", i, k);
+          printf("naive: %f strassen %f\n",sum, multiplied[IDX(i,k)]);
           break;
         }
 
         sum = 0;
       }
     }
+
+    printf("valid matrix multiplication\n");
 
     return valid;
 }
