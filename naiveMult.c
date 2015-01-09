@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <sched.h>
-#include <numa.h>
+
 
 #include "naiveMult.h"
 

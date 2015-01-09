@@ -7,47 +7,23 @@
 #include "naiveMult.h"
 #include "strassenutil.h"
 
-#include <stdint.h>
-#include <sched.h>
-#include <numa.h>
-#include <time.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include "util.h"
-
-
-#include "membench.h"
-
 // #define ndim  1024
 #define IDX(Y, X) (ndim * Y + X) //rows first
 
 int main(int argc, char **argv)
 {
-	NUM_THREADS = 8;
-	ndim = 5000;
+	NUM_THREADS = 4;
+	ndim = 256;
 
-	// srand(time(NULL));
-	srand(0);
-
+	srand(time(NULL));
+	double *first=malloc(ndim*ndim*sizeof(double));
+	double *second=malloc(ndim*ndim*sizeof(double));
+	double *multiply=malloc(ndim*ndim*sizeof(double));
+	int i, c, d;
 	printf("NUM_THREADS: %d\n", NUM_THREADS);
 	printf("ndim: %d\n", ndim);
 	setbuf(stdout, NULL);
 
-	printf("numa node count %d\n", numa_max_node() + 1);
-
-	int destnode = 0;
-	long freep;
-	numa_node_size(0, &freep);
-	printf("freep in GB on 0: %f\n", (float) freep / 1E9);
-	numa_node_size(1, &freep);
-	printf("freep in GB on 1: %f\n", (float) freep / 1E9);
-
-	double *first = (double *) numa_alloc_onnode(ndim * ndim * sizeof(double), destnode);
-	double *second = (double *) numa_alloc_onnode(ndim * ndim * sizeof(double), destnode);
-	double *multiply = (double *) numa_alloc_onnode(ndim * ndim * sizeof(double), destnode);
-	int i, c, d;
-
-	numa_run_on_node(0);
 
 	for (c = 0 ; c < ndim; c++)
 	{
@@ -78,6 +54,7 @@ int main(int argc, char **argv)
 			  }
 			}
 			strassenMultiplication(ndim, first,second, multiply);
+			isValid(first, second, multiply);
 		}
   }
 

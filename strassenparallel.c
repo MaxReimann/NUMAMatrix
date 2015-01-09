@@ -2,77 +2,78 @@
 #include "strassen.h"
 
 
-void strassen_P1 (int n, matrix a11, matrix a22, 
-				matrix b11, matrix b22,
+void strassen_P1 (int n, matrix A11, matrix A22, 
+				matrix B11, matrix B22,
 				matrix p)
 // P1 = (A11 + A22)*(B11+B22)
 {
 
-	add(n, a11, a22, p11);
-	add(n, b11, b22, p12);
+	add(n, A11, A22, p11);
+
+	add(n, B11, B22, p12);
 	strassen_multiply(n, p11, p12, p_res, p_temp); 
 }
 
-void strassen_P2 (int n, matrix a21, matrix a22, 
-				matrix b11,
+void strassen_P2 (int n, matrix A21, matrix A22, 
+				matrix B11,
 				matrix p)
 //  P2 = (A21 + A22)B11
 {
 
-	add(n, a21, a22, p11);
-	strassen_multiply(n, p11, b11, p_res, p_temp); 
+	add(n, A21, A22, p11);
+	strassen_multiply(n, p11, B11, p_res, p_temp); 
 }
 
-void strassen_P3 (int n, matrix a11, 
-				matrix b12, matrix b22
+void strassen_P3 (int n, matrix A11, 
+				matrix B12, matrix B22,
 				matrix p)
 //  P3 =  A11*(B12-B22)
 {
-	sub(n, b12, b22, p11);
-	strassen_multiply(n, p11, a11, p_res, p_temp); 
+	sub(n, B12, B22, p11);
+	strassen_multiply(n, p11, A11, p_res, p_temp); 
 }
 
-void strassen_P4 (int n, matrix a22, 
-				matrix b21, matrix b11
+void strassen_P4 (int n, matrix A22, 
+				matrix B21, matrix B11,
 				matrix p)
 //  P4 =  A22*(B21-B11)
 {
-	sub(n, b21, b11, p11);
-	strassen_multiply(n, p11, a22, p_res, p_temp); 
+	sub(n, B21, B11, p11);
+	strassen_multiply(n, p11, A22, p_res, p_temp); 
 }
 
 
 
-void strassen_P5 (int n, matrix a11, matrix a12, 
-				matrix b22,
+void strassen_P5 (int n, matrix A11, matrix A12, 
+				matrix B22,
 				matrix p)
 //  P5 = (A11 + A12)B22 
 {
 
-	add(n, a12, a12, p11);
-	strassen_multiply(n, p11, b22, p_res, p_temp); //p1
+	add(n, A11, A12, p11);
+	strassen_multiply(n, p11, B22, p_res, p_temp); //p1
 }
 
 
-void strassen_P6 (int n, matrix a21, matrix a11, 
-				matrix b11, matrix b12
+void strassen_P6 (int n, matrix A21, matrix A11, 
+				matrix B11, matrix B12,
 				matrix p)
 //   P6 = (A21-A11)*(B11+B12) 
 {
 
-	add(n, b11, b12, p11);
-	sub(n, a21, a11, p12)
+	add(n, B11, B12, p11);
+	sub(n, A21, A11, p12);
 	strassen_multiply(n, p11, p12, p_res, p_temp); 
 }
 
-void strassen_P7 (int n, matrix a12, matrix a22, 
-				matrix b21, matrix b22
+void strassen_P7 (int n, matrix A12, matrix A22, 
+				matrix B21, matrix B22,
 				matrix p)
 //   P7 = (A12-A22)*(B21+B22)
 {
 
-	sub(n, a12, a22, p11)
-	add(n, b21, b22, p12);
+	sub(n, A12, A22, p11);
+	add(n, B21, B22, p12);
 	strassen_multiply(n, p11, p12, p_res, p_temp); 
 }
 
@@ -94,10 +95,10 @@ void strassenParallel(int n, double first[], double second[], double multiply[])
 	P7 = strassen_newmatrix(n);
 
 
-
-
 	strassen_set(n, a, first, 0 ,0);
 	strassen_set(n, b, second, 0, 0);
+
+	n /= 2;
 
 	strassen_P1(n, a11, a22, b11, b22, P1);
 	strassen_P2(n, a21, a22, b11, P2);
@@ -110,13 +111,13 @@ void strassenParallel(int n, double first[], double second[], double multiply[])
 	//  C11 = P1 + P4 - P5 + P7
 	//  C22 = P1 - P2 + P3 + P6
 
-	add(n, P1->[3], P4->[3], c11);
-	sub(n, c11, P5->[3], c11);
-	add(n, c11, P7->[3], c11);
+	add(n, P1->p[3], P4->p[3], c11);
+	sub(n, c11, P5->p[3], c11);
+	add(n, c11, P7->p[3], c11);
 
-	sub(n, P1->[3], P2->[3], c22);
-	add(n, c22, P3->[3], c22);
-	add(n, c22, P6->[3], c22);
+	sub(n, P1->p[3], P2->p[3], c22);
+	add(n, c22, P3->p[3], c22);
+	add(n, c22, P6->p[3], c22);
 
 
 
