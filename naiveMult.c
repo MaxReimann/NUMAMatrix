@@ -6,17 +6,11 @@
 #include <pthread.h>
 #include <sched.h>
 
-#include "globals.h"
 #include "naiveMult.h"
-
-// #define NUM_THREADS 1
-//ndim must be dividable by NUM_THREADS
-// int ndim = 64; //global
 
 #define IDX(Y, X) (ndim * Y + X) //rows first
 #define BILLION 1E9
 
-typedef enum { false, true } bool;
 
 typedef struct {
   int startColumn;

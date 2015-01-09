@@ -1,5 +1,7 @@
+#include <stdio.h>
 #include "strassenutil.h"
 #include "strassen.h"
+
 
 
 void strassen_P1 (int n, matrix A11, matrix A22, 
@@ -82,7 +84,7 @@ void strassen_P7 (int n, matrix A12, matrix A22,
 void strassenParallel(int n, double first[], double second[], double multiply[])
 {
 	printf("Running parallel strassenMultiplication\n");
-	matrix a, b, c, d, P1, P2, P3, P4, P5, P6, P7;
+	matrix a, b, c, P1, P2, P3, P4, P5, P6, P7;
 	a = strassen_newmatrix(n);
 	b = strassen_newmatrix(n);
 	c = strassen_newmatrix(n);

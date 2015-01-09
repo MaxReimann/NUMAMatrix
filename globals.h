@@ -1,2 +1,5 @@
-int NUM_THREADS;
-int ndim;
+//constants needed everywhere
+
+//ndim must be dividable by NUM_THREADS
+extern const int NUM_THREADS;
+extern const int ndim;

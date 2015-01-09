@@ -8,13 +8,14 @@
 #include "strassenutil.h"
 #include "globals.h"
 
-// #define ndim  1024
+
 #define IDX(Y, X) (ndim * Y + X) //rows first
+const int NUM_THREADS = 4;
+const int ndim = 64;
 
 int main(int argc, char **argv)
 {
-    NUM_THREADS = 4;
-    ndim = 64;
+
 
     srand(time(NULL));
     double *first = malloc(ndim * ndim * sizeof(double));
@@ -36,24 +37,6 @@ int main(int argc, char **argv)
 
         }
     }
- //    for (c = 0 ; c < ndim; c++)
- //    {
- //        for (d = 0 ; d < ndim; d++)
- //        {
- //            printf("%f ", first[IDX(c, d)]);
- //        }
- //        printf("\n");
- //    }
-	// printf("\n");
- //    for (c = 0 ; c < ndim; c++)
- //    {
- //        for (d = 0 ; d < ndim; d++)
- //        {
- //            printf("%f ", second[IDX(c, d)]);
- //        }
- //        printf("\n");
- //    }
-
 
     for (i = 1; i < argc; ++i)
     {
