@@ -1,0 +1,344 @@
+#include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "globals.h"
+
+#include "strassen.h"
+#include "strassenutil.h"
+
+#define _a11 a11->p[0]
+#define _a12 a11->p[1]
+#define _a13 a12->p[0]
+#define _a14 a12->p[1]
+#define _a21 a11->p[2]
+#define _a22 a11->p[3]
+#define _a23 a12->p[2]
+#define _a24 a12->p[3]
+#define _a31 a21->p[0]
+#define _a32 a21->p[1]
+#define _a33 a22->p[0]
+#define _a34 a22->p[1]
+#define _a41 a21->p[2]
+#define _a42 a21->p[3]
+#define _a43 a22->p[2]
+#define _a44 a22->p[3]
+
+#define _b11 b11->p[0]
+#define _b12 b11->p[1]
+#define _b13 b12->p[0]
+#define _b14 b12->p[1]
+#define _b21 b11->p[2]
+#define _b22 b11->p[3]
+#define _b23 b12->p[2]
+#define _b24 b12->p[3]
+#define _b31 b21->p[0]
+#define _b32 b21->p[1]
+#define _b33 b22->p[0]
+#define _b34 b22->p[1]
+#define _b41 b21->p[2]
+#define _b42 b21->p[3]
+#define _b43 b22->p[2]
+#define _b44 b22->p[3]
+
+
+#define C11 c11->p[0]
+#define C12 c11->p[1]
+#define C13 c12->p[0]
+#define C14 c12->p[1]
+#define C21 c11->p[2]
+#define C22 c11->p[3]
+#define C23 c12->p[2]
+#define C24 c12->p[3]
+#define C31 c21->p[0]
+#define C32 c21->p[1]
+#define C33 c22->p[0]
+#define C34 c22->p[1]
+#define C41 c21->p[2]
+#define C42 c21->p[3]
+#define C43 c22->p[2]
+#define C44 c22->p[3]
+
+
+
+
+#define _P11 (P[0]->p[3])
+#define _P12 (P[1]->p[3])
+#define _P13 (P[2]->p[3])
+#define _P14 (P[3]->p[3])
+#define _P15 (P[4]->p[3])
+#define _P16 (P[5]->p[3])
+#define _P17 (P[6]->p[3])
+
+#define _P21 (P[7]->p[3])
+#define _P22 (P[8]->p[3])
+#define _P23 (P[9]->p[3])
+#define _P24 (P[10]->p[3])
+#define _P25 (P[11]->p[3])
+#define _P26 (P[12]->p[3])
+#define _P27 (P[13]->p[3])
+
+#define _P31 (P[14]->p[3])
+#define _P32 (P[15]->p[3])
+#define _P33 (P[16]->p[3])
+#define _P34 (P[17]->p[3])
+#define _P35 (P[18]->p[3])
+#define _P36 (P[19]->p[3])
+#define _P37 (P[20]->p[3])
+
+#define _P41 (P[21]->p[3])
+#define _P42 (P[22]->p[3])
+#define _P43 (P[23]->p[3])
+#define _P44 (P[24]->p[3])
+#define _P45 (P[25]->p[3])
+#define _P46 (P[26]->p[3])
+#define _P47 (P[27]->p[3])
+
+#define _P51 (P[28]->p[3])
+#define _P52 (P[29]->p[3])
+#define _P53 (P[30]->p[3])
+#define _P54 (P[31]->p[3])
+#define _P55 (P[32]->p[3])
+#define _P56 (P[33]->p[3])
+#define _P57 (P[34]->p[3])
+
+#define _P61 (P[35]->p[3])
+#define _P62 (P[36]->p[3])
+#define _P63 (P[37]->p[3])
+#define _P64 (P[38]->p[3])
+#define _P65 (P[39]->p[3])
+#define _P66 (P[40]->p[3])
+#define _P67 (P[41]->p[3])
+
+#define _P71 (P[42]->p[3])
+#define _P72 (P[43]->p[3])
+#define _P73 (P[44]->p[3])
+#define _P74 (P[45]->p[3])
+#define _P75 (P[46]->p[3])
+#define _P76 (P[47]->p[3])
+#define _P77 (P[48]->p[3])
+
+/* template for function generation, do not modify
+#start_definition
+P11 = (a11 + a33 + a22 + a44)*(b11 + b33 + b22 + b44)
+P12 = (a21 + a43 + a22 + a44)*(b11 + b33)
+P13 = (a11 + a33)*(b12 + b34 - b22 - b44)
+P14 = (a22 + a44)*(b21 + b43 - b11 - b33)
+P15 = (a11 + a33 + a12 + a34)*(b22 + b44)
+P16 = (a21 + a43 - a11 - a33)*(b11 + b33 + b12 + b34)
+P17 = (a12 + a34 - a22 - a44)*(b21 + b43 + b22 + b44)
+P21 = (a31 + a33 + a42 + a44)*(b11 + b22)
+P22 = (a41 + a43 + a42 + a44)*b11
+P23 = (a31 + a33)*(b12- b22)
+P24 = (a42 + a44)*(b21 - b11)
+P25 = (a31 + a33 + a32 + a34)*b22
+P26 = (a41 + a43 - a31 - a33)*(b11 + b12)
+P27 = (a32 + a34 - a42 - a44)*(b21 + b22)
+P31 = (a11 + a22)*(b13 - b33 + b24 - b44)
+P32 = (a21 + a22)*(b13 - b33)
+P33 = a11*(b14 - b34 - b24 + b44)
+P34 = a22*(b23 - b43 - b13 + b33)
+P35 = (a11 + a12)*(b24 - b44)
+P36 = (a21 - a11)*(b13 - b33 + b14 - b34)
+P37 = (a12 - a22)*(b23 - b43 + b24 - b44)
+P41 = (a33 + a44)*(b31 - b11 + b42 - b22)
+P42 = (a43 + a44)*(b31 - b11)
+P43 = a33*(b32 - b12 - b42 + b22)
+P44 = a44*(b41 - b21 - b31 + b11)
+P45 = (a33 + a34)*(b42 - b22)
+P46 = (a43 - a33)*(b31 - b11 + b32 - b12)
+P47 = (a34 - a44)*(b41 - b21 + b42 - b22)
+P51 = (a11 + a13 + a22 + a24)*(b33 + b44)
+P52 = (a21 + a23 + a22 + a24)*b33
+P53 = (a11 + a13)*(b34 - b44)
+P54 = (a22 + a24)*(b43 - b33)
+P55 = (a11 + a13 + a12 + a14)*b44
+P56 = (a21 + a23 - a11 - a13)*(b33 + b34)
+P57 = (a12 + a14 - a22 - a24)*(b43 + b44)
+P61 = (a31 - a11 + a42 - a22)*(b11 + b13 + b22 + b24)
+P62 = (a41 - a21 + a42 - a22)*(b11 + b13)
+P63 = (a31 - a11)*(b12 + b14 - b22 - b24)
+P64 = (a42 - a22)*(b21 + b23 - b11 - b13)
+P65 = (a31 - a11 + a32 - a12)*(b22 + b24)
+P66 = (a41 - a21 - a31 + a11)*(b11 + b13 + b12 + b14)
+P67 = (a32 - a12 - a42 + a22)*(b21 + b23 + b22 + b24)
+P71 = (a13 - a33 + a24 - a44)*(b31 + b33 + b42 + b44)
+P72 = (a23 - a43 + a24 - a44)*(b31 + b33)
+P73 = (a13 - a33)*(b32 + b34 - b42 - b44)
+P74 = (a24 - a44)*(b41 + b43 - b31 - b33)
+P75 = (a13 - a33 + a14 - a34)*(b42 + b44)
+P76 = (a23 - a43 - a13 + a33)*(b31 + b33 + b32 + b34)
+P77 = (a14 - a34 - a24 + a44)*(b41 + b43 + b42 + b44)
+#end_definition
+*/
+/*
+#start_result_definition
+c11 =  (P11 + P14 - P15 + P17) + (P41 + P44 - P45 + P47) - (P51 + P54 - P55 + P57) + (P71 + P74 - P75 + P77)
+c12 =  (P13 + P15) + (P43 + P45) - (P53 + P55) + (P73 + P75)
+c13 =  (P31 + P34 - P35 + P37) + (P51 + P54 - P55 + P57)
+c14 =  (P33 + P35) + (P53 + P55)
+c21 =  (P12 + P14) + (P42 + P44) - (P52 + P54) + (P72 + P74)
+c22 =  (P11 + P13 - P12 + P16) + (P41 + P43 - P42 + P46) - (P51 + P53 - P52 + P56) + (P71 + P73 - P72 + P76)
+c23 =  (P32 + P34) + (P52 + P54)
+c24 =  (P31 + P33 - P32 + P36) + (P51 + P53 - P52 + P56)
+c31 =  (P21 + P24 - P25 + P27) + (P41 + P44 - P45 + P47)
+c32 =  (P23 + P25) + (P43 + P45)
+c33 =  (P11 + P14 - P15 + P17) - (P21 + P24 - P25 + P27) + (P31 + P34 - P35 + P37) + (P61 + P64 - P65 + P67)
+c34 =  (P13 + P15) - (P23 + P25) + (P33 + P35) + (P63 + P65)
+c41 =  (P22 + P24) + (P42 + P44)
+c42 =  (P21 + P23 - P22 + P26) + (P41 + P43 - P42 + P46)
+c43 =  (P12 + P14) - (P22 + P24) + (P32 + P34) + (P62 + P64)
+c44 =  (P11 + P13 - P12 + P16) - (P21 + P23 - P22 + P26) + (P31 + P33 - P32 + P36) + (P61 + P63 - P62 + P66)
+#start_result_definition
+*/
+
+//////////////////// Strassen Parts /////////////////////
+#insert_functions
+
+///////////////////// Parallelization //////////////////
+
+typedef enum { false, true } bool;
+
+typedef struct
+{
+    int n;
+    matrix a;
+    matrix b;
+    matrix output;
+    void (*p_fPtr)(int, matrix, matrix, matrix);
+    int index;
+
+} threadArguments;
+
+
+void (*p_fPtr[49]) (int, matrix, matrix, matrix);
+
+void (*c_fPtr[49]) (int n, matrix P[], matrix);
+
+void gen_initFunctionPointers(){
+	
+#insert_funtion_pointers
+}
+
+
+bool gen_runningThreads[7] = {false, false, false, false, false, false, false};
+
+void *gen_parallelDispatcher(void *args)
+{
+    threadArguments *a = (threadArguments *) args;
+    a->p_fPtr(a->n, a->a, a->b, a->output);
+
+    gen_runningThreads[a->index] = false;
+    pthread_exit((void *) args);
+}
+
+int gen_numRunning()
+{
+    int running = 0;
+    for (int i = 0; i < 7; i++)
+        if (gen_runningThreads[i] == true)
+            running++;
+    return running;
+}
+
+int gen_firstRunning()
+{
+    for (int i = 0; i < 7; i++)
+        if (gen_runningThreads[i] == true)
+            return i;
+}
+
+void gen_parallelExecuteParts(threadArguments parts[])
+{
+    pthread_attr_t attr;
+    void *status;
+    pthread_t thread[7];
+    pthread_attr_init(&attr);
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+
+
+    for (int i = 0; i < 7; i++)
+    {
+
+        if (gen_numRunning() >= NUM_THREADS)
+        {
+            //wait until one is free
+            int rc = pthread_join(thread[gen_firstRunning()], &status);
+            if (rc)
+            {
+                fprintf(stderr, "%s: %s\n", "ERROR; return code from pthread_join()(1) ", strerror(rc));
+                exit(EXIT_FAILURE);
+            }
+        }
+
+        parts[i].index = i;
+        int rc = pthread_create( &thread[i],  &attr, gen_parallelDispatcher, (void *) &parts[i]);
+        if (rc)
+        {
+            fprintf(stderr, "Error - pthread_create() return code: %d\n", rc);
+            exit(EXIT_FAILURE);
+        }
+        gen_runningThreads[i] = true;
+    }
+
+
+    /* Free attribute and wait for the other threads */
+    pthread_attr_destroy(&attr);
+    for (int i = 0; i < 7; i++)
+    {
+        if (gen_runningThreads[i]==true)
+        {
+            int rc = pthread_join(thread[i], &status);
+            if (rc)
+            {
+                fprintf(stderr, "%s: %s\n", "ERROR; return code from pthread_join()(2) ", strerror(rc));
+                exit(EXIT_FAILURE);
+            }
+        }
+    }
+
+
+}
+
+void strassenMassiveParallel(int n, double first[], double second[], double multiply[])
+{
+    printf("Running parallel strassenMultiplication\n");
+    matrix a, b, c, P1, P2, P3, P4, P5, P6, P7;
+    threadArguments parts[49];
+    matrix P[49];
+
+    struct timespec start, end;
+    clock_gettime(CLOCK_MONOTONIC, &start);
+
+    gen_initFunctionPointers();
+
+    a = strassen_newmatrix(n);
+    b = strassen_newmatrix(n);
+    c = strassen_newmatrix(n);
+
+    strassen_set(n, a, first, 0 , 0);
+    strassen_set(n, b, second, 0, 0);
+
+
+    n /= 2;
+    
+    for (int i = 0; i<49; i++)
+    {
+        P[i] = strassen_newmatrix(n);
+        (*p_fPtr[i])(n/2, a, b, P[i]);
+    }
+
+    matrix result_submatrix[16] = {C11,C12,C13,C14,
+        C21,C22,C23,C24,
+        C31,C32,C33,C34,
+        C41,C42,C43,C44};
+
+    for (int i=0; i<16;i++)
+    {
+        (*c_fPtr[i])(n/2, P, result_submatrix[i]);
+    }
+
+    strassen_get(n * 2, c, multiply, 0, 0);
+
+}

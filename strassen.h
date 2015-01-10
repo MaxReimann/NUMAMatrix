@@ -18,7 +18,7 @@
 *	    recursive call for 4 half-size submatrices
 */
 
-#define BREAK 8
+#define BREAK 16
 
 /*
 * A matrix is defined to be a pointer to a ``union _matrix'', which
@@ -30,6 +30,8 @@ typedef union _matrix {
 	double **d;
 	union _matrix **p;
 } *matrix;
+
+
 
 void strassen_multiply(int, matrix, matrix, matrix, matrix);
 void add(int, matrix, matrix, matrix);

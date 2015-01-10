@@ -250,37 +250,26 @@ void check(int e, char *s)
     }
 }
 
+
+
 void printMatrix(int n, matrix a)
 {
 #define INDEX(Y, X) (ndim * Y + X) //rows first
-    if (n <= BREAK)
+
+    double *multiply = malloc(ndim * ndim * sizeof(double));
+    strassen_get(n, a, multiply, 0, 0);
+
+
+    for (int i = 0; i < n; i++)
     {
-        int i, j;
-        double **p = a->d;
-
-        for (i = 0; i < n; i++)
-        {
-            for (j = 0; j < n; j++)
-                printf("%f ", p[i][j] );
-            printf("\n");
-        }
-
-
-    }
-    else
-    {
-
-        printf("\n");
-        n /= 2;
-
-        printMatrix(n, a11);
-        printMatrix(n, a12);
-        printMatrix(n, a21);
-        printMatrix(n, a22);
-
-
+        for (int j = 0; j < n; j++)
+            printf("%f ", multiply[INDEX(i,j)] );
         printf("\n");
     }
+
+    printf("\n");
+
+
 }
 
 void strassenMultiplication(int n, double first[], double second[], double multiply[])

@@ -59,7 +59,7 @@ int main(int argc, char **argv)
                 for (d = 0 ; d < ndim; d++)
                     multiply[IDX(c, d)] = 0;
             }
-            strassenParallel(ndim, first, second, multiply);
+            strassenMassiveParallel(ndim, first, second, multiply);
             //isValid(first, second, multiply);
         }
     }
