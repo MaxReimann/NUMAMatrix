@@ -61,15 +61,19 @@ int main(int argc, char **argv)
 
 
   for (i = 1; i < argc; ++i) {
-    if (strcmp("0", argv[i]) == 0)
-			parallelNaive(first,second, multiply);
+    if (strcmp("0", argv[i]) == 0) {
+    	printf("parallelNaive\n");
+			parallelNaive(first, second, multiply);
+    }
+
     if (strcmp("1", argv[i]) == 0) {
 			for (c = 0 ; c < ndim; c++) {
 			  for (d = 0 ; d < ndim; d++) {
 			    multiply[IDX(c,d)] = 0;
 			  }
 			}
-			naiveMultiplication(first,second, multiply);
+    	printf("naiveMultiplication\n");
+			naiveMultiplication(first, second, multiply);
 		}
     if (strcmp("2", argv[i]) == 0) {
   		for (c = 0 ; c < ndim; c++) {
@@ -77,7 +81,17 @@ int main(int argc, char **argv)
 			    multiply[IDX(c,d)] = 0;
 			  }
 			}
-			strassenMultiplication(ndim, first,second, multiply);
+    	printf("strassenMultiplication\n");
+			strassenMultiplication(ndim, first, second, multiply);
+		}
+    if (strcmp("3", argv[i]) == 0) {
+  		for (c = 0 ; c < ndim; c++) {
+			  for (d = 0 ; d < ndim; d++) {
+			  	multiply[IDX(c,d)] = 0;
+			  }
+			}
+    	printf("parallelSum\n");
+			parallelSum(first, second, multiply);
 		}
   }
 
