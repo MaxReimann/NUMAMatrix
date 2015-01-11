@@ -119,6 +119,8 @@
 #define _P76 (P[47]->p[3])
 #define _P77 (P[48]->p[3])
 
+#define BILLION 1E9
+
 /* template for function generation, do not modify
 #start_definition
 P11 = (a11 + a33 + a22 + a44)*(b11 + b33 + b22 + b44)
@@ -1013,7 +1015,9 @@ typedef struct
     matrix b;
     matrix output;
     void (*p_fPtr)(int, matrix, matrix, matrix);
+    void (*c_fPtr)(int, matrix[], matrix);
     int index;
+    matrix *P;
 
 } threadArguments;
 
@@ -1093,12 +1097,25 @@ c_fPtr[15] = _c44;
 }
 
 
-bool gen_runningThreads[7] = {false, false, false, false, false, false, false};
+bool gen_runningThreads[49];
 
-void *gen_parallelDispatcher(void *args)
+
+void *gen_parallelDispatcherP(void *args)
 {
+
     threadArguments *a = (threadArguments *) args;
     a->p_fPtr(a->n, a->a, a->b, a->output);
+
+    gen_runningThreads[a->index] = false;
+    pthread_exit((void *) args);
+}
+
+void *gen_parallelDispatcherC(void *args)
+{
+
+    threadArguments *a = (threadArguments *) args;
+
+    a->c_fPtr(a->n, a->P, a->output);
 
     gen_runningThreads[a->index] = false;
     pthread_exit((void *) args);
@@ -1107,7 +1124,7 @@ void *gen_parallelDispatcher(void *args)
 int gen_numRunning()
 {
     int running = 0;
-    for (int i = 0; i < 7; i++)
+    for (int i = 0; i < 49; i++)
         if (gen_runningThreads[i] == true)
             running++;
     return running;
@@ -1115,23 +1132,24 @@ int gen_numRunning()
 
 int gen_firstRunning()
 {
-    for (int i = 0; i < 7; i++)
+    for (int i = 0; i < 49; i++)
         if (gen_runningThreads[i] == true)
             return i;
+    return -1;
 }
 
-void gen_parallelExecuteParts(threadArguments parts[])
+void gen_parallelExecuteParts(threadArguments parts[], int n_parts, void* (*dispatcher)(void*))
 {
+
     pthread_attr_t attr;
     void *status;
-    pthread_t thread[7];
+    pthread_t thread[n_parts];
     pthread_attr_init(&attr);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
 
-    for (int i = 0; i < 7; i++)
+    for (int i = 0; i < n_parts; i++)
     {
-
         if (gen_numRunning() >= NUM_THREADS)
         {
             //wait until one is free
@@ -1144,7 +1162,7 @@ void gen_parallelExecuteParts(threadArguments parts[])
         }
 
         parts[i].index = i;
-        int rc = pthread_create( &thread[i],  &attr, gen_parallelDispatcher, (void *) &parts[i]);
+        int rc = pthread_create( &thread[i],  &attr, dispatcher, (void *) &parts[i]);
         if (rc)
         {
             fprintf(stderr, "Error - pthread_create() return code: %d\n", rc);
@@ -1156,7 +1174,7 @@ void gen_parallelExecuteParts(threadArguments parts[])
 
     /* Free attribute and wait for the other threads */
     pthread_attr_destroy(&attr);
-    for (int i = 0; i < 7; i++)
+    for (int i = 0; i < n_parts; i++)
     {
         if (gen_runningThreads[i]==true)
         {
@@ -1175,8 +1193,9 @@ void gen_parallelExecuteParts(threadArguments parts[])
 void strassenMassiveParallel(int n, double first[], double second[], double multiply[])
 {
     printf("Running parallel strassenMultiplication\n");
-    matrix a, b, c, P1, P2, P3, P4, P5, P6, P7;
+    matrix a, b, c;
     threadArguments parts[49];
+    threadArguments partsC[16];
     matrix P[49];
 
     struct timespec start, end;
@@ -1197,8 +1216,20 @@ void strassenMassiveParallel(int n, double first[], double second[], double mult
     for (int i = 0; i<49; i++)
     {
         P[i] = strassen_newmatrix(n);
-        (*p_fPtr[i])(n/2, a, b, P[i]);
+        parts[i].n = n/2;
+        parts[i].a = a;
+        parts[i].b = b;
+        parts[i].output = P[i];
+        parts[i].p_fPtr = p_fPtr[i];
+        parts[i].index = i;
+
+        gen_runningThreads[i] = false;
     }
+
+
+    //blocks until all parts are executed
+    gen_parallelExecuteParts(parts, 49, gen_parallelDispatcherP);
+
 
     matrix result_submatrix[16] = {C11,C12,C13,C14,
         C21,C22,C23,C24,
@@ -1207,9 +1238,25 @@ void strassenMassiveParallel(int n, double first[], double second[], double mult
 
     for (int i=0; i<16;i++)
     {
-        (*c_fPtr[i])(n/2, P, result_submatrix[i]);
+        partsC[i].index = i;
+        partsC[i].n = n/2;
+        partsC[i].P = P;
+        partsC[i].output = result_submatrix[i];
+        partsC[i].c_fPtr = c_fPtr[i];
+        gen_runningThreads[i] = false;
+        //(*c_fPtr[i])(n/2, P, result_submatrix[i]);
     }
 
+
+    //blocks until all parts are executed
+    gen_parallelExecuteParts(partsC, 16, gen_parallelDispatcherC);
+
     strassen_get(n * 2, c, multiply, 0, 0);
+
+
+    clock_gettime(CLOCK_MONOTONIC, &end);
+    float seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
+
+    printf("massive parallel strassen took: %f\n\n", seconds);
 
 }

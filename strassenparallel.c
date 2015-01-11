@@ -139,6 +139,7 @@ int firstRunning()
     for (int i = 0; i < 7; i++)
         if (runningThreads[i] == true)
             return i;
+    return -1;
 }
 
 void parallelExecuteParts(threadArguments parts[])
