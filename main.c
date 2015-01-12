@@ -11,8 +11,8 @@
 
 #define IDX(Y, X) (ndim * Y + X) //rows first
 
-const int NUM_THREADS = 4;
-const int ndim = 2048;
+const int NUM_THREADS = 24;
+const int ndim = 4000;
 
 int main(int argc, char **argv)
 {
@@ -59,6 +59,7 @@ int main(int argc, char **argv)
                 for (d = 0 ; d < ndim; d++)
                     multiply[IDX(c, d)] = 0;
             }
+            //strassenMultiplication(ndim, first, second, multiply);
             strassenMassiveParallel(ndim, first, second, multiply);
             //isValid(first, second, multiply);
         }

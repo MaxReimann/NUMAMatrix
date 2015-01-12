@@ -142,6 +142,78 @@ void strassen_naivemult(int n, matrix a, matrix b, matrix c)    /* c = a*b */
     }
 }
 
+int sizeofMatrix(int n)
+{
+    matrix a;
+    double alloc = sizeof(*a);
+
+    if (n <= BREAK){
+
+        alloc += n * sizeof(double*);
+        for (int i = 0; i < n; i++)
+            alloc += n * sizeof(double);
+    }
+    else 
+    {
+            n/=2;
+            alloc += 4 * sizeof(matrix);
+    
+            alloc += sizeofMatrix(n);
+            alloc += sizeofMatrix(n);
+            alloc += sizeofMatrix(n);
+            alloc += sizeofMatrix(n);
+    }
+        
+    return alloc;
+}
+
+void *my_malloc(void  *memory, int *memPointer,int size)
+{
+    // forward beginning of memory by mempointer
+    // note this kind of void pointer arithmetics is only allowed 
+    // by gcc
+    void *mem = memory + *memPointer;
+    *memPointer += size;
+    return mem;
+}
+
+matrix _strassen_newmatrix_block(int n, void  *memory, int *memPointer)
+{
+    matrix a = (matrix) my_malloc(memory, memPointer, sizeof(*a));
+
+    if (n<= BREAK)
+    {
+        a->d = (double **) my_malloc(memory, memPointer, n * sizeof(double*));
+
+        for (int i = 0; i < n; i++)
+        {
+            a->d[i] =  my_malloc(memory, memPointer, n * sizeof(double));
+        }
+    }
+    else
+    {
+        n /= 2;
+        a->p =  (matrix *) my_malloc(memory, memPointer, 4 * sizeof(double));
+
+        a11 = _strassen_newmatrix_block(n, memory, memPointer);
+        a12 = _strassen_newmatrix_block(n, memory, memPointer);
+        a21 = _strassen_newmatrix_block(n, memory, memPointer);
+        a22 = _strassen_newmatrix_block(n, memory, memPointer);
+    }
+    return a;
+
+}
+
+matrix strassen_newmatrix_block(int n)
+{
+    int size = sizeofMatrix(n);
+    void *memory=malloc(size);
+    //printf("memsize %d\n", size);
+
+    int memPointer = 0;
+    return _strassen_newmatrix_block(n, memory,&memPointer);
+}
+
 /* return new square n by n matrix */
 matrix strassen_newmatrix(int n)
 {
@@ -174,7 +246,8 @@ matrix strassen_newmatrix(int n)
         a22 = strassen_newmatrix(n);
     }
     return a;
-}
+} 
+// n-BREAK
 
 /*
 * Print the first MAXERRS locations where the two matrices differ
@@ -274,12 +347,13 @@ void printMatrix(int n, matrix a)
 
 void strassenMultiplication(int n, double first[], double second[], double multiply[])
 {
+
     printf("Running strassenMultiplication\n");
     matrix a, b, c, d;
-    a = strassen_newmatrix(n);
-    b = strassen_newmatrix(n);
-    c = strassen_newmatrix(n);
-    d = strassen_newmatrix(n);
+    a = strassen_newmatrix_block(n);
+    b = strassen_newmatrix_block(n);
+    c = strassen_newmatrix_block(n);
+    d = strassen_newmatrix_block(n);
     strassen_set(n, a, first, 0 , 0);
     strassen_set(n, b, second, 0, 0);
 

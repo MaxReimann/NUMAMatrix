@@ -1244,7 +1244,6 @@ void strassenMassiveParallel(int n, double first[], double second[], double mult
         partsC[i].output = result_submatrix[i];
         partsC[i].c_fPtr = c_fPtr[i];
         gen_runningThreads[i] = false;
-        //(*c_fPtr[i])(n/2, P, result_submatrix[i]);
     }
 
 
