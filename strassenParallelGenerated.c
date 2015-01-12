@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sched.h>
+#include <numa.h>
 
 #include "globals.h"
 
@@ -1017,6 +1019,7 @@ typedef struct
     void (*p_fPtr)(int, matrix, matrix, matrix);
     void (*c_fPtr)(int, matrix[], matrix);
     int index;
+    int node;
     matrix *P;
 
 } threadArguments;
@@ -1102,9 +1105,9 @@ bool gen_runningThreads[49];
 
 void *gen_parallelDispatcherP(void *args)
 {
-
     threadArguments *a = (threadArguments *) args;
     a->p_fPtr(a->n, a->a, a->b, a->output);
+    numa_run_on_node(a->node);
 
     gen_runningThreads[a->index] = false;
     pthread_exit((void *) args);
@@ -1192,8 +1195,11 @@ void gen_parallelExecuteParts(threadArguments parts[], int n_parts, void* (*disp
 
 void strassenMassiveParallel(int n, double first[], double second[], double multiply[])
 {
+    #define NUMA_NODES 2
+
+
     printf("Running parallel strassenMultiplication\n");
-    matrix a, b, c;
+    matrix a[NUMA_NODES], b[NUMA_NODES], c;
     threadArguments parts[49];
     threadArguments partsC[16];
     matrix P[49];
@@ -1203,27 +1209,50 @@ void strassenMassiveParallel(int n, double first[], double second[], double mult
 
     gen_initFunctionPointers();
 
-    a = strassen_newmatrix(n);
-    b = strassen_newmatrix(n);
-    c = strassen_newmatrix(n);
+    int size_matrix = sizeofMatrix(n);
+ 
+    a[0] = strassen_newmatrix_block_NUMA(n, 0);
+    b[0] = strassen_newmatrix_block_NUMA(n, 0);
+    c = strassen_newmatrix_block(n);
 
-    strassen_set(n, a, first, 0 , 0);
-    strassen_set(n, b, second, 0, 0);
+    strassen_set(n, a[0], first, 0 , 0);
+    strassen_set(n, b[0], second, 0, 0);
+
+    for (int i=1; i < NUMA_NODES; i++)
+    {
+    	a[i] = numa_alloc_onnode(size_matrix, i);
+    	b[i] = numa_alloc_onnode(size_matrix, i);
+    	printf("ok3\n");
+
+        memcpy(a[i], a[0], size_matrix);
+        memcpy(b[i], b[0], size_matrix);
+
+        //numa_tonode_memory((void*) a[i], size_matrix, i);
+        //numa_tonode_memory((void*) b[i], size_matrix, i);
+        printf("ok3\n");
+    }
 
 
     n /= 2;
     
-    for (int i = 0; i<49; i++)
+    for (int node=0; node < NUMA_NODES;node++)
     {
-        P[i] = strassen_newmatrix(n);
-        parts[i].n = n/2;
-        parts[i].a = a;
-        parts[i].b = b;
-        parts[i].output = P[i];
-        parts[i].p_fPtr = p_fPtr[i];
-        parts[i].index = i;
+        int start = node * 49/NUMA_NODES;
+        int end = (node+1) * 49/NUMA_NODES -1;
+        for (int i = start; i<=end; i++)
+        {
+            P[i] = strassen_newmatrix_block(n);
+            parts[i].n = n/2;
+            parts[i].a = a[node];
+            parts[i].b = b[node];
+            parts[i].node = node;
+            parts[i].output = P[i];
+            parts[i].p_fPtr = p_fPtr[i];
+            parts[i].index = i;
 
-        gen_runningThreads[i] = false;
+            gen_runningThreads[i] = false;
+        }
+        
     }
 
 
@@ -1235,6 +1264,7 @@ void strassenMassiveParallel(int n, double first[], double second[], double mult
         C21,C22,C23,C24,
         C31,C32,C33,C34,
         C41,C42,C43,C44};
+
 
     for (int i=0; i<16;i++)
     {

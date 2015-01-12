@@ -7,6 +7,9 @@ void strassenParallel(int n, double first[], double second[], double multiply[])
 
 matrix strassen_newmatrix(int);		/* allocate storage */
 matrix strassen_newmatrix_block(int n);
+matrix strassen_newmatrix_block_NUMA(int n, int node);
+int sizeofMatrix(int n);
+
 void strassen_randomfill(int, matrix);	/* fill with random values in the
 										* the range [0,1) */
 

@@ -1,5 +1,5 @@
 TARGET = bin/matrixmult
-LIBS = -lm -lpthread -lrt
+LIBS = -lm -lpthread -lrt -lnuma
 CC = gcc
 CFLAGS = -g -Wall --std=gnu11 
 

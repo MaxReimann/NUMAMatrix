@@ -13,6 +13,9 @@
 #include <time.h>
 #include <sys/time.h>
 #include <stdlib.h>
+#include <sched.h>
+#include <numa.h>
+
 #include "strassenutil.h"
 #include "globals.h"
 #define BILLION 1E9
@@ -213,6 +216,18 @@ matrix strassen_newmatrix_block(int n)
     int memPointer = 0;
     return _strassen_newmatrix_block(n, memory,&memPointer);
 }
+
+matrix strassen_newmatrix_block_NUMA(int n, int node)
+{
+    int size = sizeofMatrix(n);
+    void *memory=numa_alloc_onnode(size, node);
+    //printf("memsize %d\n", size);
+
+    int memPointer = 0;
+    return _strassen_newmatrix_block(n, memory,&memPointer);
+}
+
+
 
 /* return new square n by n matrix */
 matrix strassen_newmatrix(int n)
