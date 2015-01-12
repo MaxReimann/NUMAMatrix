@@ -16,7 +16,12 @@
 #define IDX(Y, X) (ndim * Y + X) //rows first
 #define InvIDX(X, Y) (ndim * Y + X) //rows first
 #define BILLION 1E9
+
 typedef enum { false, true } bool;
+
+#define useNumaAdvantages true
+#define forceSingleNode false
+
 
 typedef struct {
   int startColumn;
@@ -24,7 +29,7 @@ typedef struct {
   double *first;
   double *second;
   double *output;
-
+  bool isFirst;
 } threadArguments;
 
 typedef struct {
@@ -32,7 +37,7 @@ typedef struct {
   double *halfSecond;
   double *output;
   int summandIdx;
-  bool first;
+  bool isFirst;
 } parallelSum_args;
 
 
@@ -42,8 +47,13 @@ void *multiplyPart(void *args)
   struct timespec start, end;
   clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start);
   threadArguments *a = (threadArguments*) args;
-  // numa_run_on_node(1);
 
+  if (useNumaAdvantages && !a->isFirst) {
+    numa_run_on_node(1);
+  }
+  if (forceSingleNode) {
+    numa_run_on_node(0);
+  }
 
   double* first = a->first;
   double* second = a->second;
@@ -69,33 +79,40 @@ void *multiplyPart(void *args)
 }
 
 
-bool isValid(double first[], double second[], double multiplied[])
+void checkValidity(double first[], double second[], double multiplied[])
 {
-    int i, j, k;
-    double sum = 0;
-    bool valid = true;
-    //standard matrix multiplication (see wikipedia pseudocode)
-    for (i = 0; i < ndim; i++)
+  if (true)
+    return;
+
+  int i, j, k;
+  double sum = 0;
+  bool valid = true;
+  //standard matrix multiplication (see wikipedia pseudocode)
+  for (i = 0; i < ndim; i++)
+  {
+    for (k = 0; k < ndim; k++)
     {
-      for (k = 0; k < ndim; k++)
+      for (j = 0; j < ndim; j++)
       {
-        for (j = 0; j < ndim; j++)
-        {
-          sum = sum + first[IDX(i,j)]*second[IDX(j,k)];
-        }
-
-        if (multiplied[IDX(i,k)] != sum)
-        {
-          valid = false;
-          printf("result matrix not valid in row %d, col %d diff: %d \n", i, k, multiplied[IDX(i,k)] - sum);
-          break;
-        }
-
-        sum = 0;
+        sum = sum + first[IDX(i,j)]*second[IDX(j,k)];
       }
-    }
 
-    return valid;
+      if (multiplied[IDX(i,k)] != sum)
+      {
+        valid = false;
+        printf("result matrix not valid in row %d, col %d diff: %d \n", i, k, multiplied[IDX(i,k)] - sum);
+        break;
+      }
+
+      sum = 0;
+    }
+  }
+
+  if (valid)
+    printf("valid matrix multiplication\n");
+  else {
+    printf("invalid :(\n");
+  }
 }
 
 
@@ -108,7 +125,7 @@ void naiveMultiplication(double first[], double second[], double multiply[])
 
   printf("Running naiveMultiplication\n");
 
-  //standard matrix multiplication (see wikipedia pseudocode)
+  // standard matrix multiplication
   for (i = 0; i < ndim; i++) {
     for (k = 0; k < ndim; k++) {
       sum = 0;
@@ -132,12 +149,18 @@ void parallelSum_multiplyPart(parallelSum_args *args) {
   double sum = 0;
   double seconds;
   clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start);
-  if (!args->first) {
-    numa_run_on_node(1);
+
+  if (useNumaAdvantages) {
+    if (!args->isFirst) {
+      numa_run_on_node(1);
+    }
+  }
+
+  if (forceSingleNode) {
+    numa_run_on_node(0);
   }
 
   int x, y, z;
-  int halfMatrixCellCount = ndim * ndim / 2;
 
   double* multiply = args->output;
   double* halfFirst = args->halfFirst;
@@ -145,7 +168,7 @@ void parallelSum_multiplyPart(parallelSum_args *args) {
   int startZ = args->summandIdx;
   int sumCount = ndim / NUM_THREADS;
 
-  int offset = args->first ? 0 : halfMatrixCellCount;
+  int offset = args->isFirst ? 0 : halfMatrixCellCount;
 
   double tmpSum;
   for (x = 0; x < ndim; x++) {
@@ -214,9 +237,6 @@ void parallelSum(double first[], double second[], double multiply[]) {
   //   divide second horizontally in n parts
   //   on the ith node: calculate the i/n ... (i+1)/n sums
 
-  int halfMatrixCellCount = ndim * ndim / 2;
-  size_t halfMatrixSize = halfMatrixCellCount * sizeof(double);
-  int useNumaAdvantages = true;
   struct timespec start, end;
   float seconds;
 
@@ -282,8 +302,7 @@ void parallelSum(double first[], double second[], double multiply[]) {
     threadArgs[i].halfFirst = firstHalf ? firstA : firstB;
     threadArgs[i].halfSecond = firstHalf ? secondA : secondB;
     threadArgs[i].output = (firstHalf || true) ? multiply : resultMatrixB;
-    // threadArgs[i].output = resultMatrixB;
-    threadArgs[i].first = firstHalf;
+    threadArgs[i].isFirst = firstHalf;
 
     rc = pthread_create( &thread[i],  &attr, parallelSum_multiplyPart, (void*) &threadArgs[i]);
     if(rc) {
@@ -316,12 +335,7 @@ void parallelSum(double first[], double second[], double multiply[]) {
 
   transposeMatrix(first);
 
-  if (isValid(first, second, multiply))
-    printf("valid matrix multiplication\n");
-  else {
-    printf("invalid :(\n");
-  }
-
+  checkValidity(first, second, multiply);
 }
 
 
@@ -333,6 +347,43 @@ void parallelNaive(double first[], double second[], double multiply[])
   pthread_attr_t attr;
   void *status;
 
+  double *firstA, *firstB, *secondA, *secondB, *resultMatrixB;
+
+  if (useNumaAdvantages) {
+    //
+    // create copies of first, second and multiply on numa node 0 and 1
+    //
+
+    firstA = (double *) numa_alloc_onnode(2 * halfMatrixSize, 0);
+    firstB = (double *) numa_alloc_onnode(2 * halfMatrixSize, 1);
+
+    secondA = (double *) numa_alloc_onnode(2 * halfMatrixSize, 0);
+    secondB = (double *) numa_alloc_onnode(2 * halfMatrixSize, 1);
+
+    resultMatrixB = (double *) numa_alloc_onnode(2 * halfMatrixSize, 1);
+
+
+    memcpy(firstA, first, 2 * halfMatrixSize);
+    memcpy(firstB, first, 2 * halfMatrixSize);
+
+    memcpy(secondA, second, 2 * halfMatrixSize);
+    memcpy(secondB, second, 2 * halfMatrixSize);
+
+    numa_tonode_memory((void*) firstA, halfMatrixSize, 0);
+    numa_tonode_memory((void*) firstB, halfMatrixSize, 1);
+
+    numa_tonode_memory((void*) secondA, halfMatrixSize, 0);
+    numa_tonode_memory((void*) secondB, halfMatrixSize, 1);
+  } else {
+    firstA = first;
+    firstB = first;
+    secondA = second;
+    secondB = second;
+    resultMatrixB = multiply;
+  }
+
+
+
   printf("Running parallelNaive\n");
 
   struct timespec start, end;
@@ -340,31 +391,30 @@ void parallelNaive(double first[], double second[], double multiply[])
 
   pthread_attr_init(&attr);
   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
-  for (int i = 0; i < NUM_THREADS; i++)
-  {
-      threadArgs[i].startColumn = ndim / NUM_THREADS * i;
-      threadArgs[i].lastColumn = (ndim / NUM_THREADS * (i+1)) - 1;
-      threadArgs[i].first = first;
-      threadArgs[i].second = second;
-      threadArgs[i].output = multiply;
+  for (int i = 0; i < NUM_THREADS; i++) {
+    int firstHalf = i < NUM_THREADS / 2;
+    threadArgs[i].startColumn = ndim / NUM_THREADS * i;
+    threadArgs[i].lastColumn = (ndim / NUM_THREADS * (i+1)) - 1;
+    threadArgs[i].first = firstHalf ? firstA : firstB;
+    threadArgs[i].second = firstHalf ? secondA : secondB;
+    threadArgs[i].output = firstHalf ? multiply : resultMatrixB;
+    threadArgs[i].isFirst = firstHalf;
 
-      rc = pthread_create( &thread[i],  &attr, multiplyPart, (void*) &threadArgs[i]);
-      if(rc)
-      {
-        fprintf(stderr,"Error - pthread_create() return code: %d\n",rc);
-        exit(EXIT_FAILURE);
-      }
-      // rc = pthread_join(thread[i], &status);
+
+    rc = pthread_create( &thread[i],  &attr, multiplyPart, (void*) &threadArgs[i]);
+    if(rc) {
+      fprintf(stderr,"Error - pthread_create() return code: %d\n",rc);
+      exit(EXIT_FAILURE);
+    }
+    // rc = pthread_join(thread[i], &status);
   }
 
 
   /* Free attribute and wait for the other threads */
   pthread_attr_destroy(&attr);
-  for (int i = 0; i < NUM_THREADS; i++)
-  {
+  for (int i = 0; i < NUM_THREADS; i++) {
     rc = pthread_join(thread[i], &status);
-    if (rc)
-    {
+    if (rc) {
        printf("ERROR; return code from pthread_join() is %d\n", rc);
        exit(EXIT_FAILURE);
     }
@@ -376,11 +426,6 @@ void parallelNaive(double first[], double second[], double multiply[])
 
   printf("parallelNaive took: %f\n\n", seconds);
 
-  // if (isValid(first, second, multiply))
-  //   printf("valid matrix multiplication\n");
-  // else {
-  //   printf("invalid :(\n");
-  // }
-
+  checkValidity(first, second, multiply);
 
 }

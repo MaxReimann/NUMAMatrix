@@ -27,6 +27,9 @@ int main(int argc, char **argv)
 	NUM_THREADS = 24;
 	ndim = 2400;
 
+	halfMatrixCellCount = (ndim * ndim / 2);
+	halfMatrixSize = halfMatrixCellCount * sizeof(double);
+
 	assert(((double) ndim) / NUM_THREADS - (int)(ndim / NUM_THREADS) == 0);
 
 	// srand(time(NULL));
