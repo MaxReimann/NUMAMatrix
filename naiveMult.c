@@ -16,7 +16,6 @@
 #define IDX(Y, X) (ndim * Y + X) //rows first
 #define InvIDX(X, Y) (ndim * Y + X) //rows first
 #define BILLION 1E9
-
 typedef enum { false, true } bool;
 
 typedef struct {
@@ -27,6 +26,15 @@ typedef struct {
   double *output;
 
 } threadArguments;
+
+typedef struct {
+  double *halfFirst;
+  double *halfSecond;
+  double *output;
+  int summandIdx;
+  bool first;
+} parallelSum_args;
+
 
 void *multiplyPart(void *args)
 {
@@ -40,12 +48,14 @@ void *multiplyPart(void *args)
   double* first = a->first;
   double* second = a->second;
   double* output = a->output;
-
+  double tmpSum;
   for (i=a->startColumn; i <= a->lastColumn; i++) {
     for (k = 0; k < ndim; k++) {
+      tmpSum = 0;
       for (j = 0; j < ndim; j++) {
-        output[IDX(i,k)] += first[IDX(i,j)] * second[IDX(j,k)];
+        tmpSum += first[IDX(i,j)] * second[IDX(j,k)];
       }
+      output[IDX(i,k)] += tmpSum;
     }
   }
 
@@ -53,6 +63,7 @@ void *multiplyPart(void *args)
   float seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
 
   printf("naive parallel matrix multiplication (%d-%d) took: %f\n\n", a->startColumn, a->lastColumn, seconds);
+
 
   pthread_exit((void*) args);
 }
@@ -76,7 +87,7 @@ bool isValid(double first[], double second[], double multiplied[])
         if (multiplied[IDX(i,k)] != sum)
         {
           valid = false;
-          printf("result matrix not valid in row %d, col %d \n", i, k);
+          printf("result matrix not valid in row %d, col %d diff: %d \n", i, k, multiplied[IDX(i,k)] - sum);
           break;
         }
 
@@ -98,17 +109,18 @@ void naiveMultiplication(double first[], double second[], double multiply[])
   printf("Running naiveMultiplication\n");
 
   //standard matrix multiplication (see wikipedia pseudocode)
-  for (i = 0; i < ndim; i++)
-      for (k = 0; k < ndim; k++)
-      {
-        for (j = 0; j < ndim; j++)
-          // sum = sum + first[IDX(i,j)]*second[IDX(j,k)];
-          multiply[IDX(i,k)] = sum + first[IDX(i,j)]*second[IDX(j,k)];
-
-
-        // multiply[IDX(i,k)] = sum;
-        // sum = 0;
+  for (i = 0; i < ndim; i++) {
+    for (k = 0; k < ndim; k++) {
+      sum = 0;
+      for (j = 0; j < ndim; j++) {
+        sum += first[IDX(i, j)]*second[IDX(j, k)];
       }
+      multiply[IDX(i, k)] += sum;
+
+      // multiply[IDX(i,k)] = sum;
+      // sum = 0;
+    }
+  }
 
 
   clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end);
@@ -118,6 +130,81 @@ void naiveMultiplication(double first[], double second[], double multiply[])
 }
 
 
+void parallelSum_multiplyPart(parallelSum_args *args) {
+  struct timespec start, end;
+  double sum = 0;
+  double seconds;
+  clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start);
+  if (args->first) {
+    numa_run_on_node(1);
+  }
+
+  int x, y, z;
+  int halfMatrixCellCount = ndim * ndim / 2;
+
+  double* multiply = args->output;
+  double* halfFirst = args->halfFirst;
+  double* halfSecond = args->halfSecond;
+  int startZ = args->summandIdx;
+  int sumCount = ndim / NUM_THREADS;
+
+  // printf("sumCount %d\n", sumCount);
+
+  int offset = args->first ? 0 : halfMatrixCellCount;
+
+  double tmpSum;
+
+  for (x = 0; x < ndim; x++) {
+    for (y = 0; y < ndim; y++) {
+      tmpSum = 0;
+      for (z = startZ; z < startZ + sumCount; z++) {
+        // compute the z-th summand for cell (y, z):
+        // = (y, z) * (z, x)
+        // since we transposed the first matrix, the index for the first matrix
+        // has to be inverted (we use InvIDX instead of IDX)
+
+        // if (IDX(y, x) >= halfMatrixCellCount * 2)
+        //   printf("0 1 invalid idx: %d %d %d %d\n", IDX(y, z), x, y, z);
+        // if (InvIDX(y, z) >= halfMatrixCellCount)
+        //   printf("0 2 invalid idx: %d %d %d %d\n", InvIDX(y, z), x, y, z);
+        // if (IDX(z, x) >= halfMatrixCellCount)
+        //   printf("0 3 invalid idx: %d %d %d %d\n", IDX(z, x), x, y, z);
+        // printf("0 startZ: %d z: %d x: %d y: %d\n", startZ, z, x, y);
+        tmpSum += halfFirst[IDX(z, y) - offset] * halfSecond[InvIDX(x, z) - offset];
+      }
+      multiply[IDX(y, x)] += tmpSum;
+    }
+  }
+
+
+  clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end);
+  seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
+
+  printf("parallelSum_multiplyPart took: %f\n\n", seconds);
+
+
+}
+
+void printMatrix(double m[]) {
+  for (int y = 0; y < ndim; y++) {
+    for (int x = 0; x < ndim; x++) {
+      printf("%f ", m[IDX(y, x)]);
+    }
+    printf("\n");
+  }
+}
+
+void transposeMatrix(double *matrixToTranspose) {
+  double tmp;
+  for (int x = 0; x < ndim; x++) {
+    for (int y = x; y < ndim; y++) {
+      tmp = matrixToTranspose[IDX(y, x)];
+      matrixToTranspose[IDX(y, x)] = matrixToTranspose[InvIDX(y, x)];
+      matrixToTranspose[InvIDX(y, x)] = tmp;
+    }
+  }
+}
+
 void parallelSum(double first[], double second[], double multiply[]) {
   // basic process:
   //   divide first vertically in n parts and
@@ -126,13 +213,29 @@ void parallelSum(double first[], double second[], double multiply[]) {
 
   int halfMatrixCellCount = ndim * ndim / 2;
   size_t halfMatrixSize = halfMatrixCellCount * sizeof(double);
+  int useNumaAdvantages = true;
+  struct timespec start, end;
+  float seconds;
 
-  // divide matrices
+  // start measuring time
+  clock_gettime(CLOCK_MONOTONIC, &start);
+
+  //
+  // transpose second matrix
+  //
+  transposeMatrix(first);
+
+
+  //
+  // divide matrices and move to different nodes
+  //
   double *firstA = (double *) numa_alloc_onnode(halfMatrixSize, 0);
-  double *firstB = (double *) numa_alloc_onnode(halfMatrixSize, 1);
+  double *firstB = (double *) numa_alloc_onnode(halfMatrixSize, useNumaAdvantages);
 
   double *secondA = (double *) numa_alloc_onnode(halfMatrixSize, 0);
-  double *secondB = (double *) numa_alloc_onnode(halfMatrixSize, 1);
+  double *secondB = (double *) numa_alloc_onnode(halfMatrixSize, useNumaAdvantages);
+
+  double *resultMatrixB = (double *) numa_alloc_onnode(2 * halfMatrixSize, useNumaAdvantages);
 
   memcpy(firstA, first, halfMatrixSize);
   memcpy(firstB, first + halfMatrixCellCount, halfMatrixSize);
@@ -140,56 +243,74 @@ void parallelSum(double first[], double second[], double multiply[]) {
   memcpy(secondA, second, halfMatrixSize);
   memcpy(secondB, second + halfMatrixCellCount, halfMatrixSize);
 
-
   numa_tonode_memory((void*) firstA, halfMatrixSize, 0);
-  numa_tonode_memory((void*) firstB, halfMatrixSize, 1);
+  numa_tonode_memory((void*) firstB, halfMatrixSize, useNumaAdvantages);
 
   numa_tonode_memory((void*) secondA, halfMatrixSize, 0);
-  numa_tonode_memory((void*) secondB, halfMatrixSize, 1);
+  numa_tonode_memory((void*) secondB, halfMatrixSize, useNumaAdvantages);
 
-  // TODO: transpose second matrix
-  // either write transposed values to a new matrix (either local and then move or immediately remote)
-  // or in-memory
 
-  printf("1\n");
+  clock_gettime(CLOCK_MONOTONIC, &end);
+  seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
+  printf("preprocessing of input took: %f\n\n", seconds);
 
-  int x, y, z;
-  for (x = 0; x < ndim; x++) {
-    for (y = 0; y < ndim; y++) {
-      for (z = 0; z < ndim / 2; z++) {
-        // compute the z-th summand for cell (y, z):
-        // = (y, z) * (z, x)
-        // since we transposed the first matrix, the index for the first matrix
-        // has to be inverted (we use InvIDX instead of IDX)
+  //
+  // set up threads
+  //
+  int rc;
+  pthread_t thread[NUM_THREADS];
+  parallelSum_args threadArgs[NUM_THREADS];
+  pthread_attr_t attr;
+  void *status;
 
-        // TODO: recheck indices
-        multiply[IDX(y, x)] += firstA[InvIDX(y, z)] * secondA[IDX(z, x)];
-      }
+  printf("Running parallelSum\n");
+
+  clock_gettime(CLOCK_MONOTONIC, &start);
+
+  pthread_attr_init(&attr);
+  pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+
+  int sumCount = ndim / NUM_THREADS;
+  for (int i = 0; i < NUM_THREADS; i++) {
+    int firstHalf = i < NUM_THREADS / 2;
+    threadArgs[i].summandIdx = i * sumCount;
+    threadArgs[i].halfFirst = firstHalf ? firstA : firstB;
+    threadArgs[i].halfSecond = firstHalf ? secondA : secondB;
+    threadArgs[i].output = (firstHalf || true) ? multiply : resultMatrixB;
+    // threadArgs[i].output = resultMatrixB;
+    threadArgs[i].first = firstHalf;
+
+    rc = pthread_create( &thread[i],  &attr, parallelSum_multiplyPart, (void*) &threadArgs[i]);
+    if(rc) {
+      fprintf(stderr,"Error - pthread_create() return code: %d\n",rc);
+      exit(EXIT_FAILURE);
     }
+    pthread_join(thread[i], &status);
   }
 
-  printf("2\n");
-  for (x = 0; x < ndim; x++) {
-    for (y = 0; y < ndim; y++) {
-      for (z = ndim / 2; z < ndim; z++) {
-        // if (IDX(y, x) >= halfMatrixCellCount * 2)
-        //   printf("1 invalid idx: %d %d %d %d\n", IDX(y, z), x, y, z);
-        // if (InvIDX(y, z) >= halfMatrixCellCount)
-        //   printf("2 invalid idx: %d %d %d %d\n", InvIDX(y, z), x, y, z);
-        // if (IDX(z, x) >= halfMatrixCellCount)
-        //   printf("3 invalid idx: %d %d %d %d\n", IDX(z, x), x, y, z);
 
-        multiply[IDX(y, x)] += firstB[InvIDX(y, z) - halfMatrixCellCount] * secondB[IDX(z, x) - halfMatrixCellCount];
-      }
-    }
-  }
-
-  printf("3\n");
-  // if (isValid(first, second, multiply))
-  //   printf("valid matrix multiplication\n");
-  // else {
-  //   printf("invalid :(\n");
+  /* Free attribute and wait for the other threads */
+  pthread_attr_destroy(&attr);
+  // for (int i = 0; i < NUM_THREADS; i++) {
+  //   rc = pthread_join(thread[i], &status);
+  //   if (rc) {
+  //      printf("ERROR; return code from pthread_join() is %d\n", rc);
+  //      exit(EXIT_FAILURE);
+  //   }
   // }
+
+
+  clock_gettime(CLOCK_MONOTONIC, &end);
+  seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
+  printf("parallelSum took: %f\n\n", seconds);
+
+  transposeMatrix(first);
+
+  if (isValid(first, second, multiply))
+    printf("valid matrix multiplication\n");
+  else {
+    printf("invalid :(\n");
+  }
 
 }
 
@@ -209,7 +330,6 @@ void parallelNaive(double first[], double second[], double multiply[])
 
   pthread_attr_init(&attr);
   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
-
   for (int i = 0; i < NUM_THREADS; i++)
   {
       threadArgs[i].startColumn = ndim / NUM_THREADS * i;
@@ -224,6 +344,7 @@ void parallelNaive(double first[], double second[], double multiply[])
         fprintf(stderr,"Error - pthread_create() return code: %d\n",rc);
         exit(EXIT_FAILURE);
       }
+      // rc = pthread_join(thread[i], &status);
   }
 
 
@@ -247,6 +368,9 @@ void parallelNaive(double first[], double second[], double multiply[])
 
   // if (isValid(first, second, multiply))
   //   printf("valid matrix multiplication\n");
+  // else {
+  //   printf("invalid :(\n");
+  // }
 
 
 }

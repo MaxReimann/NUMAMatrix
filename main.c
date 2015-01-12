@@ -23,8 +23,8 @@
 
 int main(int argc, char **argv)
 {
-	NUM_THREADS = 8;
-	ndim = 5000;
+	NUM_THREADS = 2;
+	ndim = 2;
 
 	// srand(time(NULL));
 	srand(0);
@@ -53,7 +53,7 @@ int main(int argc, char **argv)
 	{
 	  for (d = 0 ; d < ndim; d++)
 	  {
-	    first[IDX(c,d)] = rand() % 100; //int between 0 - 1000
+	    first[IDX(c,d)] = rand() % 100; //int between 0 - 100
 	    second[IDX(c,d)] = rand() % 100;
 	    multiply[IDX(c,d)] = 0;
 	  }
