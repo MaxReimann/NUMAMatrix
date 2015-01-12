@@ -116,9 +116,6 @@ void naiveMultiplication(double first[], double second[], double multiply[])
         sum += first[IDX(i, j)]*second[IDX(j, k)];
       }
       multiply[IDX(i, k)] += sum;
-
-      // multiply[IDX(i,k)] = sum;
-      // sum = 0;
     }
   }
 
@@ -135,7 +132,7 @@ void parallelSum_multiplyPart(parallelSum_args *args) {
   double sum = 0;
   double seconds;
   clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start);
-  if (args->first) {
+  if (!args->first) {
     numa_run_on_node(1);
   }
 
@@ -148,15 +145,14 @@ void parallelSum_multiplyPart(parallelSum_args *args) {
   int startZ = args->summandIdx;
   int sumCount = ndim / NUM_THREADS;
 
-  // printf("sumCount %d\n", sumCount);
-
   int offset = args->first ? 0 : halfMatrixCellCount;
 
   double tmpSum;
-
   for (x = 0; x < ndim; x++) {
     for (y = 0; y < ndim; y++) {
       tmpSum = 0;
+      // printf("startZ: %d\n", startZ);
+      // printf("sumCount: %d\n", sumCount);
       for (z = startZ; z < startZ + sumCount; z++) {
         // compute the z-th summand for cell (y, z):
         // = (y, z) * (z, x)
@@ -170,6 +166,13 @@ void parallelSum_multiplyPart(parallelSum_args *args) {
         // if (IDX(z, x) >= halfMatrixCellCount)
         //   printf("0 3 invalid idx: %d %d %d %d\n", IDX(z, x), x, y, z);
         // printf("0 startZ: %d z: %d x: %d y: %d\n", startZ, z, x, y);
+
+        // printf("%d * %d = %d\n",
+        //   halfFirst[IDX(z, y) - offset],
+        //   halfSecond[InvIDX(x, z) - offset],
+        //   halfFirst[IDX(z, y) - offset] * halfSecond[InvIDX(x, z) - offset]
+        // );
+
         tmpSum += halfFirst[IDX(z, y) - offset] * halfSecond[InvIDX(x, z) - offset];
       }
       multiply[IDX(y, x)] += tmpSum;
@@ -270,6 +273,8 @@ void parallelSum(double first[], double second[], double multiply[]) {
   pthread_attr_init(&attr);
   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
+  int parallel = true;
+
   int sumCount = ndim / NUM_THREADS;
   for (int i = 0; i < NUM_THREADS; i++) {
     int firstHalf = i < NUM_THREADS / 2;
@@ -285,19 +290,24 @@ void parallelSum(double first[], double second[], double multiply[]) {
       fprintf(stderr,"Error - pthread_create() return code: %d\n",rc);
       exit(EXIT_FAILURE);
     }
-    pthread_join(thread[i], &status);
+    if (!parallel) {
+      pthread_attr_destroy(&attr);
+      pthread_join(thread[i], &status);
+    }
   }
 
 
   /* Free attribute and wait for the other threads */
-  pthread_attr_destroy(&attr);
-  // for (int i = 0; i < NUM_THREADS; i++) {
-  //   rc = pthread_join(thread[i], &status);
-  //   if (rc) {
-  //      printf("ERROR; return code from pthread_join() is %d\n", rc);
-  //      exit(EXIT_FAILURE);
-  //   }
-  // }
+  if (parallel) {
+    pthread_attr_destroy(&attr);
+    for (int i = 0; i < NUM_THREADS; i++) {
+      rc = pthread_join(thread[i], &status);
+      if (rc) {
+         printf("ERROR; return code from pthread_join() is %d\n", rc);
+         exit(EXIT_FAILURE);
+      }
+    }
+  }
 
 
   clock_gettime(CLOCK_MONOTONIC, &end);

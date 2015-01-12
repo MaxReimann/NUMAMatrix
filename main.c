@@ -13,6 +13,7 @@
 #include <time.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <assert.h>
 #include "util.h"
 
 
@@ -23,8 +24,10 @@
 
 int main(int argc, char **argv)
 {
-	NUM_THREADS = 2;
-	ndim = 2;
+	NUM_THREADS = 24;
+	ndim = 2400;
+
+	assert(((double) ndim) / NUM_THREADS - (int)(ndim / NUM_THREADS) == 0);
 
 	// srand(time(NULL));
 	srand(0);
