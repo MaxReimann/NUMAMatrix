@@ -371,7 +371,7 @@ void strassenMassiveParallel(int n, double first[], double second[], double mult
         int end = (node+1) * 49/NUMA_NODES -1;
         for (int i = start; i<=end; i++)
         {
-            P[i] = strassen_newmatrix_block(n);
+            P[i] = strassen_newmatrix_block_NUMA(n, node);
             parts[i].n = n/2;
             parts[i].a = a[node];
             parts[i].b = b[node];
