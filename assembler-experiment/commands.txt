@@ -1,0 +1,2 @@
+commands:
+ gcc -c -g -Wa,-a,-ad -O3 --std=gnu11 assembler-experiment.c > optimized.asm
