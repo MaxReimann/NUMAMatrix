@@ -12,7 +12,7 @@
 #define IDX(Y, X) (ndim * Y + X) //rows first
 
 const int NUM_THREADS = 49;
-const int ndim = 8000;
+const int ndim = 2048;
 
 int main(int argc, char **argv)
 {
@@ -50,7 +50,15 @@ int main(int argc, char **argv)
                 for (d = 0 ; d < ndim; d++)
                     multiply[IDX(c, d)] = 0;
             }
-            naiveMultiplication(first, second, multiply);
+            blockedMultiply(first, second, multiply);
+            isValid(first, second, multiply);
+
+            // for (c = 0 ; c < ndim; c++)
+            // {
+            //     for (d = 0 ; d < ndim; d++)
+            //         multiply[IDX(c, d)] = 0;
+            // }
+            // naiveMultiplication(first, second, multiply);
         }
         if (strcmp("2", argv[i]) == 0)
         {
