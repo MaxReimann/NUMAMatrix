@@ -11,12 +11,21 @@
 
 #define IDX(Y, X) (ndim * Y + X) //rows first
 
-const int NUM_THREADS = 24;
-const int ndim = 6000;
+int NUM_THREADS = 24;
+int ndim = 6000;
+
+int indexOfParameter(int argc, char **argv, char* parameter);
 
 int main(int argc, char **argv)
 {
 
+    int indexThreadNum = indexOfParameter(argc, argv, "-t");
+    if (indexThreadNum!=-1)
+        NUM_THREADS = atoi(argv[indexThreadNum+1]);
+
+    int indexDimension = indexOfParameter(argc, argv, "-n");
+    if (indexDimension!=-1)
+        ndim = atoi(argv[indexDimension+1]);
 
     srand(1);
     double *first = malloc(ndim * ndim * sizeof(double));
@@ -38,7 +47,7 @@ int main(int argc, char **argv)
 
         }
     }
-
+    
     for (i = 1; i < argc; ++i)
     {
         if (strcmp("0", argv[i]) == 0)
@@ -66,4 +75,14 @@ int main(int argc, char **argv)
     }
 
     return 0;
+}
+
+int indexOfParameter(int argc, char **argv, char* parameter)
+{
+    for (i = 1; i < argc; ++i)
+    {
+        if (strcmp(parameter, argv[i]) == 0) 
+            return i;
+    }
+    return -1;
 }
