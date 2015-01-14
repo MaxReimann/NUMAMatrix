@@ -1020,6 +1020,7 @@ typedef struct
     void (*c_fPtr)(int, matrix[], matrix);
     int index;
     int node;
+    int usesNuma;
     matrix *P;
 
 } threadArguments;
@@ -1107,7 +1108,8 @@ void *gen_parallelDispatcherP(void *args)
 {
     threadArguments *a = (threadArguments *) args;
     a->p_fPtr(a->n, a->a, a->b, a->output);
-    numa_run_on_node(a->node);
+    if (a->usesNuma)
+    	numa_run_on_node(a->node);
 
     gen_runningThreads[a->index] = false;
     pthread_exit((void *) args);
@@ -1195,70 +1197,64 @@ void gen_parallelExecuteParts(threadArguments parts[], int n_parts, void* (*disp
 
 void strassenMassiveParallel(int n, double first[], double second[], double multiply[])
 {
-    #define NUMA_NODES 2
-
-
     printf("Running parallel strassenMultiplication\n");
-    matrix a[NUMA_NODES], b[NUMA_NODES], c;
+    matrix a, b, c;
     threadArguments parts[49];
     threadArguments partsC[16];
     matrix P[49];
 
-    struct timespec start, end;
+    struct timespec start, end, totalStart, totalEnd;
     clock_gettime(CLOCK_MONOTONIC, &start);
+    clock_gettime(CLOCK_MONOTONIC, &totalStart);
 
     gen_initFunctionPointers();
 
     int size_matrix = sizeofMatrix(n);
  
-    a[0] = strassen_newmatrix_block_NUMA(n, 0);
-    b[0] = strassen_newmatrix_block_NUMA(n, 0);
+    a = strassen_newmatrix_block(n);
+    b = strassen_newmatrix_block(n);
     c = strassen_newmatrix_block(n);
 
-    strassen_set(n, a[0], first, 0 , 0);
-    strassen_set(n, b[0], second, 0, 0);
+    strassen_set(n, a, first, 0 , 0);
+    strassen_set(n, b, second, 0, 0);
 
-    for (int i=1; i < NUMA_NODES; i++)
-    {
-    	a[i] = numa_alloc_onnode(size_matrix, i);
-    	b[i] = numa_alloc_onnode(size_matrix, i);
-    	printf("ok3\n");
+    clock_gettime(CLOCK_MONOTONIC, &end);
+    float seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
 
-        memcpy(a[i], a[0], size_matrix);
-        memcpy(b[i], b[0], size_matrix);
+    printf("preperation Time: %f\n\n", seconds);
 
-        //numa_tonode_memory((void*) a[i], size_matrix, i);
-        //numa_tonode_memory((void*) b[i], size_matrix, i);
-        printf("ok3\n");
-    }
+
+    //struct timespec start, end;
+    clock_gettime(CLOCK_MONOTONIC, &start);
 
 
     n /= 2;
     
-    for (int node=0; node < NUMA_NODES;node++)
-    {
-        int start = node * 49/NUMA_NODES;
-        int end = (node+1) * 49/NUMA_NODES -1;
-        for (int i = start; i<=end; i++)
+
+        for (int i = 0; i<49; i++)
         {
             P[i] = strassen_newmatrix_block(n);
             parts[i].n = n/2;
-            parts[i].a = a[node];
-            parts[i].b = b[node];
-            parts[i].node = node;
+            parts[i].a = a;
+            parts[i].b = b;
             parts[i].output = P[i];
             parts[i].p_fPtr = p_fPtr[i];
             parts[i].index = i;
+            parts[i].usesNuma = 1;
 
             gen_runningThreads[i] = false;
         }
-        
-    }
 
 
     //blocks until all parts are executed
     gen_parallelExecuteParts(parts, 49, gen_parallelDispatcherP);
 
+    clock_gettime(CLOCK_MONOTONIC, &end);
+    seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
+
+    printf("multiplication took: %f\n\n", seconds);
+    
+    clock_gettime(CLOCK_MONOTONIC, &start);
 
     matrix result_submatrix[16] = {C11,C12,C13,C14,
         C21,C22,C23,C24,
@@ -1284,8 +1280,134 @@ void strassenMassiveParallel(int n, double first[], double second[], double mult
 
 
     clock_gettime(CLOCK_MONOTONIC, &end);
+    seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
+
+    printf("end part took: %f\n\n", seconds);
+
+    clock_gettime(CLOCK_MONOTONIC, &totalEnd);
+
+    seconds = (totalEnd.tv_sec - totalStart.tv_sec) + 
+    	(totalEnd.tv_nsec - totalStart.tv_nsec) / BILLION;
+
+    printf("total Time: %f\n\n", seconds);
+}
+
+
+
+void strassenMassiveParallelNUMA(int n, double first[], double second[], double multiply[])
+{
+    #define NUMA_NODES 8
+
+
+    printf("Running parallel strassenMultiplication\n");
+    matrix a[NUMA_NODES], b[NUMA_NODES], c;
+    threadArguments parts[49];
+    threadArguments partsC[16];
+    matrix P[49];
+
+    struct timespec start, end, totalStart, totalEnd;
+    clock_gettime(CLOCK_MONOTONIC, &start);
+    clock_gettime(CLOCK_MONOTONIC, &totalStart);
+
+    gen_initFunctionPointers();
+
+    int size_matrix = sizeofMatrix(n);
+ 
+    a[0] = strassen_newmatrix_block(n);
+    b[0] = strassen_newmatrix_block(n);
+    c = strassen_newmatrix_block(n);
+
+    strassen_set(n, a[0], first, 0 , 0);
+    strassen_set(n, b[0], second, 0, 0);
+
+    for (int i=1; i < NUMA_NODES; i++)
+    {
+    	a[i] = numa_alloc_onnode(size_matrix, i);
+    	b[i] = numa_alloc_onnode(size_matrix, i);
+
+        memcpy(a[i], a[0], size_matrix);
+        memcpy(b[i], b[0], size_matrix);
+
+        //numa_tonode_memory((void*) a[i], size_matrix, i);
+        //numa_tonode_memory((void*) b[i], size_matrix, i);
+    }
+
+    clock_gettime(CLOCK_MONOTONIC, &end);
     float seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
 
-    printf("massive parallel strassen took: %f\n\n", seconds);
+    printf("preperation Time: %f\n\n", seconds);
 
+
+    //struct timespec start, end;
+    clock_gettime(CLOCK_MONOTONIC, &start);
+
+
+    n /= 2;
+    
+    for (int node=0; node < NUMA_NODES;node++)
+    {
+        int start = node * 49/NUMA_NODES;
+        int end = (node+1) * 49/NUMA_NODES -1;
+        for (int i = start; i<=end; i++)
+        {
+            P[i] = strassen_newmatrix_block(n);
+            parts[i].n = n/2;
+            parts[i].a = a[node];
+            parts[i].b = b[node];
+            parts[i].node = node;
+            parts[i].output = P[i];
+            parts[i].p_fPtr = p_fPtr[i];
+            parts[i].index = i;
+            parts[i].usesNuma = -1;
+
+            gen_runningThreads[i] = false;
+        }
+        
+    }
+
+
+    //blocks until all parts are executed
+    gen_parallelExecuteParts(parts, 49, gen_parallelDispatcherP);
+
+    clock_gettime(CLOCK_MONOTONIC, &end);
+    seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
+
+    printf("multiplication took: %f\n\n", seconds);
+    
+    clock_gettime(CLOCK_MONOTONIC, &start);
+
+    matrix result_submatrix[16] = {C11,C12,C13,C14,
+        C21,C22,C23,C24,
+        C31,C32,C33,C34,
+        C41,C42,C43,C44};
+
+
+    for (int i=0; i<16;i++)
+    {
+        partsC[i].index = i;
+        partsC[i].n = n/2;
+        partsC[i].P = P;
+        partsC[i].output = result_submatrix[i];
+        partsC[i].c_fPtr = c_fPtr[i];
+        gen_runningThreads[i] = false;
+    }
+
+
+    //blocks until all parts are executed
+    gen_parallelExecuteParts(partsC, 16, gen_parallelDispatcherC);
+
+    strassen_get(n * 2, c, multiply, 0, 0);
+
+
+    clock_gettime(CLOCK_MONOTONIC, &end);
+    seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
+
+    printf("end part took: %f\n\n", seconds);
+
+    clock_gettime(CLOCK_MONOTONIC, &totalEnd);
+
+    seconds = (totalEnd.tv_sec - totalStart.tv_sec) + 
+    	(totalEnd.tv_nsec - totalStart.tv_nsec) / BILLION;
+
+    printf("total Time: %f\n\n", seconds);
 }

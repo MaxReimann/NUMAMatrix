@@ -4,6 +4,7 @@
 void strassenMultiplication(int n, double first[], double second[], double multiply[]);
 
 void strassenParallel(int n, double first[], double second[], double multiply[]);
+void strassenParallelNUMA(int n, double first[], double second[], double multiply[]);
 
 matrix strassen_newmatrix(int);		/* allocate storage */
 matrix strassen_newmatrix_block(int n);
