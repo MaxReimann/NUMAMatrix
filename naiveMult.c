@@ -55,6 +55,7 @@ void *multiplyPart(void *args)
 }
 
 
+
 bool isValid(double first[], double second[], double multiplied[])
 {
     int i, j, k;
@@ -89,6 +90,34 @@ bool isValid(double first[], double second[], double multiplied[])
     return valid;
 }
 
+void blockedMultiply(double A[], double B[], double C[])
+{
+  struct timespec start, end;
+  clock_gettime(CLOCK_MONOTONIC, &start);
+
+  const int NB =  2;
+  double sum;
+
+  for(int i=0; i<ndim; i+=NB)
+    for(int j=0; j<ndim; j+=NB)
+      for(int k=0; k<ndim; k+=NB)
+        for(int i0=i; i0<(i + NB); i0++)
+          for(int j0=j; j0<(j + NB); j0++)
+           {
+              sum = 0;
+              for(int k0=k; k0<(k + NB); k0++)
+                sum += A[IDX(i0,k0)] * B[IDX(k0,j0)];
+              C[IDX(i0,j0)] += sum;
+            }
+
+
+  clock_gettime(CLOCK_MONOTONIC, &end);
+  float seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
+
+  printf("blocked took: %f\n\n", seconds);
+}
+
+
 
 void naiveMultiplication(double first[], double second[], double multiply[])
 {
@@ -104,8 +133,10 @@ void naiveMultiplication(double first[], double second[], double multiply[])
         for (k = 0; k < ndim; k++)
         {
             for (j = 0; j < ndim; j++)
-                // sum = sum + first[IDX(i,j)]*second[IDX(j,k)];
-                multiply[IDX(i, k)] = sum + first[IDX(i, j)] * second[IDX(j, k)];
+                 sum = sum + first[IDX(i,j)]*second[IDX(j,k)];
+            
+            multiply[IDX(i, k)] = sum;
+            sum = 0;
 
 
             // multiply[IDX(i,k)] = sum;

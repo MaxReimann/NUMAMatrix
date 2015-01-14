@@ -11,10 +11,11 @@
 
 #define IDX(Y, X) (ndim * Y + X) //rows first
 
-int NUM_THREADS = 24;
-int ndim = 6000;
 
 int indexOfParameter(int argc, char **argv, char* parameter);
+
+int NUM_THREADS = 49;
+int ndim = 2048;
 
 int main(int argc, char **argv)
 {
@@ -59,7 +60,15 @@ int main(int argc, char **argv)
                 for (d = 0 ; d < ndim; d++)
                     multiply[IDX(c, d)] = 0;
             }
-            naiveMultiplication(first, second, multiply);
+            blockedMultiply(first, second, multiply);
+            isValid(first, second, multiply);
+
+            // for (c = 0 ; c < ndim; c++)
+            // {
+            //     for (d = 0 ; d < ndim; d++)
+            //         multiply[IDX(c, d)] = 0;
+            // }
+            // naiveMultiplication(first, second, multiply);
         }
         if (strcmp("2", argv[i]) == 0)
         {
@@ -70,6 +79,18 @@ int main(int argc, char **argv)
             }
             //strassenMultiplication(ndim, first, second, multiply);
             strassenMassiveParallel(ndim, first, second, multiply);
+            //isValid(first, second, multiply);
+        }
+
+        if (strcmp("3", argv[i]) == 0)
+        {
+            for (c = 0 ; c < ndim; c++)
+            {
+                for (d = 0 ; d < ndim; d++)
+                    multiply[IDX(c, d)] = 0;
+            }
+            //strassenMultiplication(ndim, first, second, multiply);
+            strassenMassiveParallelNUMA(ndim, first, second, multiply);
             //isValid(first, second, multiply);
         }
     }

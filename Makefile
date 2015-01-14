@@ -1,7 +1,7 @@
 TARGET = bin/matrixmult
 LIBS = -lm -lpthread -lrt -lnuma
 CC = gcc
-CFLAGS = -g -Wall --std=gnu11 
+CFLAGS = -g -Wall --std=gnu99 
 
 .PHONY: default all clean
 
@@ -13,7 +13,7 @@ run: $(TARGET)
 	@echo "" >> output.log
 	@date >> output.log
 	@echo "" >> output.log
-	@bin/matrixmult 2 | tee -a output.log
+	@bin/matrixmult 1 | tee -a output.log
 
 	@echo "" >> output.log
 	@echo "" >> output.log
