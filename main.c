@@ -24,8 +24,9 @@
 
 int main(int argc, char **argv)
 {
-	NUM_THREADS = 24;
-	ndim = 2400;
+	NUM_THREADS = 128;
+	ndim = 4096;
+	NUM_NODES = 8;
 
 	halfMatrixCellCount = (ndim * ndim / 2);
 	halfMatrixSize = halfMatrixCellCount * sizeof(double);
@@ -98,6 +99,16 @@ int main(int argc, char **argv)
 			}
     	printf("parallelSum\n");
 			parallelSum(first, second, multiply);
+		}
+
+    if (strcmp("5", argv[i]) == 0) {
+  		for (c = 0 ; c < ndim; c++) {
+			  for (d = 0 ; d < ndim; d++) {
+			  	multiply[IDX(c,d)] = 0;
+			  }
+			}
+    	printf("doubleBlockedMultiply\n");
+			doubleBlockedMultiply(first, second, multiply);
 		}
   }
 

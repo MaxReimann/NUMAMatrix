@@ -1,7 +1,7 @@
 TARGET = bin/matrixmult
 LIBS = -lm -lpthread -lrt -lnuma
 CC = gcc
-CFLAGS = -g -Wall --std=gnu11 -fdiagnostics-color
+CFLAGS = -g -Wall --std=gnu99
 
 .PHONY: default all clean
 

@@ -29,7 +29,7 @@ typedef struct {
   double *first;
   double *second;
   double *output;
-  bool isFirst;
+  int currentNode;
 } threadArguments;
 
 typedef struct {
@@ -48,8 +48,8 @@ void *multiplyPart(void *args)
   clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start);
   threadArguments *a = (threadArguments*) args;
 
-  if (useNumaAdvantages && !a->isFirst) {
-    numa_run_on_node(1);
+  if (useNumaAdvantages) {
+    numa_run_on_node(a->currentNode);
   }
   if (forceSingleNode) {
     numa_run_on_node(0);
@@ -100,7 +100,7 @@ void checkValidity(double first[], double second[], double multiplied[])
       if (multiplied[IDX(i,k)] != sum)
       {
         valid = false;
-        printf("result matrix not valid in row %d, col %d diff: %d \n", i, k, multiplied[IDX(i,k)] - sum);
+        printf("result matrix not valid in row %d, col %d diff: %f \n", i, k, multiplied[IDX(i,k)] - sum);
         break;
       }
 
@@ -142,6 +142,107 @@ void naiveMultiplication(double first[], double second[], double multiply[])
 
   printf("naiveMultiplication took: %f\n\n", seconds);
 }
+
+void doubleBlockedMultiply(double A[], double B[], double C[]) {
+  struct timespec start, end;
+  double sum = 0;
+  // MMM loop nest (j, i, k)
+
+  int NB = 40;
+
+  // ku 2 mu 10 nu 20 seconds 1.53
+  // ku 4 mu 20 nu 40 seconds 1.53
+  // ku 5 mu 10 nu 40 seconds 1.52
+  // ku 8 mu 10 nu 40 seconds 1.50
+  // ku 20 mu 10 nu 20 seconds 1.50
+
+  int maxKU = 500;
+  int maxMU = 500;
+  int maxNU = 500;
+  double seconds;
+
+  // int KU = 1;
+  // int MU = 2;
+  // int NU = 2;
+
+  float bestTime = 100000;
+  int bestKU, bestMU, bestNU;
+
+  #define KU 2
+  #define MU 10
+  #define NU 20
+
+  // for(int KU = 100; KU <= maxKU; KU++) {
+  //   if (ndim % KU != 0)
+  //     continue;
+
+  //   for(int MU = 2; MU <= maxMU; MU++) {
+  //     if (ndim % MU != 0)
+  //       continue;
+  //     for(int NU = 2; NU <= maxNU; NU++) {
+  //       // printf("test\n");
+  //       if (ndim % NU != 0)
+  //         continue;
+  //       printf("  testing KU: %d MU: %d NU: %d\n", KU, MU, NU);
+        clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start);
+
+        // test
+        for(int i=0; i<ndim; i+=NB)
+          for(int j=0; j<ndim; j+=NB)
+            for(int k=0; k<ndim; k+=NB) {
+
+              // int i_max = ( < ndim) ? i + NB : ndim;
+              // int j_max = ( < ndim) ? j + NB : ndim;
+              // int k_max = ( < ndim) ? k + NB : ndim;
+
+              // mini-MMM loop nest (i0, j0, k0)
+              for(int i0=i; i0 < i + NB; i0+=MU)
+                for(int j0=j; j0 < j + NB; j0+=NU)
+                  for(int k0=k; k0 < k + NB; k0+=KU) {
+                    // micro-MMM loop nest (j00, i00)
+                    for(int k00=k0; k00 < (k0 + KU); k00++)
+                      for(int j00=j0; j00 < (j0 + NU); j00++)
+                        for(int i00=i0; i00 < (i0 + MU); i00++)
+                          C[IDX(i00, j00)]+=A[IDX(i00, k00)]*B[IDX(k00, j00)];
+                  }
+            }
+
+
+        // printf("test2\n");
+        clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end);
+        seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
+
+  //       if (seconds < bestTime) {
+  //         bestTime = seconds;
+  //         bestKU = KU;
+  //         bestNU = NU;
+  //         bestMU = MU;
+  //         printf("new best time!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+  //       }
+
+
+        printf("KU: %d MU: %d NU: %d    seconds: %f\n", KU, MU, NU, seconds);
+
+  //       if (seconds > 3) {
+  //         printf("don't check further NUs. continue...\n");
+  //         goto abortingNU;
+  //       }
+  //     }
+  //     abortingNU:;
+  //   }
+  // }
+
+  // printf("best:   KU: %d MU: %d NU: %d    seconds: %f\n", bestKU, bestMU, bestNU, seconds);
+
+
+
+  // printf("doubleBlockedMultiply took: %f\n\n", seconds);
+}
+
+
+
+
+
 
 
 void parallelSum_multiplyPart(parallelSum_args *args) {
@@ -346,59 +447,60 @@ void parallelNaive(double first[], double second[], double multiply[])
   threadArguments threadArgs[NUM_THREADS];
   pthread_attr_t attr;
   void *status;
+  struct timespec start, end;
+  float seconds;
 
   double *firstA, *firstB, *secondA, *secondB, *resultMatrixB;
+  clock_gettime(CLOCK_MONOTONIC, &start);
 
-  if (useNumaAdvantages) {
+  // if (useNumaAdvantages) {
     //
     // create copies of first, second and multiply on numa node 0 and 1
     //
 
-    firstA = (double *) numa_alloc_onnode(2 * halfMatrixSize, 0);
-    firstB = (double *) numa_alloc_onnode(2 * halfMatrixSize, 1);
-
-    secondA = (double *) numa_alloc_onnode(2 * halfMatrixSize, 0);
-    secondB = (double *) numa_alloc_onnode(2 * halfMatrixSize, 1);
-
-    resultMatrixB = (double *) numa_alloc_onnode(2 * halfMatrixSize, 1);
+    double** firstCopies = malloc(NUM_NODES * sizeof(double*));
+    double** secondCopies = malloc(NUM_NODES * sizeof(double*));
+    double** resultCopies = malloc(NUM_NODES * sizeof(double*));
 
 
-    memcpy(firstA, first, 2 * halfMatrixSize);
-    memcpy(firstB, first, 2 * halfMatrixSize);
+    for (int i = 0; i < NUM_NODES; ++i) {
+      firstCopies[i] = (double *) numa_alloc_onnode(2 * halfMatrixSize, i);
+      secondCopies[i] = (double *) numa_alloc_onnode(2 * halfMatrixSize, i);
+      resultCopies[i] = (double *) numa_alloc_onnode(2 * halfMatrixSize, i);
 
-    memcpy(secondA, second, 2 * halfMatrixSize);
-    memcpy(secondB, second, 2 * halfMatrixSize);
+      memcpy(firstCopies[i], first, 2 * halfMatrixSize);
+      memcpy(secondCopies[i], second, 2 * halfMatrixSize);
+      memcpy(resultCopies[i], multiply, 2 * halfMatrixSize);
+    }
 
-    numa_tonode_memory((void*) firstA, halfMatrixSize, 0);
-    numa_tonode_memory((void*) firstB, halfMatrixSize, 1);
+  // } else {
+  //   firstA = first;
+  //   firstB = first;
+  //   secondA = second;
+  //   secondB = second;
+  //   resultMatrixB = multiply;
+  // }
 
-    numa_tonode_memory((void*) secondA, halfMatrixSize, 0);
-    numa_tonode_memory((void*) secondB, halfMatrixSize, 1);
-  } else {
-    firstA = first;
-    firstB = first;
-    secondA = second;
-    secondB = second;
-    resultMatrixB = multiply;
-  }
+  clock_gettime(CLOCK_MONOTONIC, &end);
+  seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
 
+  printf("parallelNaive preprocessing took: %f\n\n", seconds);
 
+  printf("Running parallelNaive new\n");
 
-  printf("Running parallelNaive\n");
-
-  struct timespec start, end;
   clock_gettime(CLOCK_MONOTONIC, &start);
 
   pthread_attr_init(&attr);
   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
   for (int i = 0; i < NUM_THREADS; i++) {
-    int firstHalf = i < NUM_THREADS / 2;
+    int currentNode = NUM_NODES * i / NUM_THREADS;
+
     threadArgs[i].startColumn = ndim / NUM_THREADS * i;
     threadArgs[i].lastColumn = (ndim / NUM_THREADS * (i+1)) - 1;
-    threadArgs[i].first = firstHalf ? firstA : firstB;
-    threadArgs[i].second = firstHalf ? secondA : secondB;
-    threadArgs[i].output = firstHalf ? multiply : resultMatrixB;
-    threadArgs[i].isFirst = firstHalf;
+    threadArgs[i].first = firstCopies[currentNode];
+    threadArgs[i].second = secondCopies[currentNode];
+    threadArgs[i].output = resultCopies[currentNode];
+    threadArgs[i].currentNode = currentNode;
 
 
     rc = pthread_create( &thread[i],  &attr, multiplyPart, (void*) &threadArgs[i]);
@@ -422,7 +524,7 @@ void parallelNaive(double first[], double second[], double multiply[])
 
 
   clock_gettime(CLOCK_MONOTONIC, &end);
-  float seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
+  seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
 
   printf("parallelNaive took: %f\n\n", seconds);
 
