@@ -90,25 +90,33 @@ bool isValid(double first[], double second[], double multiplied[])
     return valid;
 }
 
-void blockedMultiply(double A[], double B[], double C[], int blockSize)
+void blockedMultiply(double A[], double B[], double C[])
 {
   struct timespec start, end;
   clock_gettime(CLOCK_MONOTONIC, &start);
 
-  int NB =  blockSize;
+
+  const int NB =  40;
+
   double sum;
 
   for(int i=0; i<ndim; i+=NB)
     for(int j=0; j<ndim; j+=NB)
       for(int k=0; k<ndim; k+=NB)
-        for(int i0=i; i0<(i + NB); i0++)
-          for(int j0=j; j0<(j + NB); j0++)
-           {
+      {
+        int i_max = (i+NB < ndim)? i+NB : ndim;
+        int j_max = (j+NB < ndim)? j+NB : ndim;
+        int k_max = (k+NB < ndim)? k+NB : ndim;
+        for(int i0=i; i0<i_max; i0++)
+          for(int j0=j; j0<j_max; j0++)
+            {
+
               sum = 0;
-              for(int k0=k; k0<(k + NB); k0++)
+              for(int k0=k; k0<k_max; k0++)
                 sum += A[IDX(i0,k0)] * B[IDX(k0,j0)];
               C[IDX(i0,j0)] += sum;
             }
+        }
 
 
   clock_gettime(CLOCK_MONOTONIC, &end);

@@ -12,10 +12,12 @@
 #define IDX(Y, X) (ndim * Y + X) //rows first
 
 
+
 int indexOfParameter(int argc, char **argv, char* parameter);
 
-int NUM_THREADS = 49;
-int ndim = 2000;
+const int NUM_THREADS = 49;
+const int ndim = 10000;
+
 
 int main(int argc, char **argv)
 {
