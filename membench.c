@@ -16,10 +16,10 @@ void numa_membench(mem_bench_info_t *mbinfo) {
   assert(mbinfo->destnode <= numa_max_node());
 
   {
-    long size, freep;
-    size = numa_node_size(mbinfo->destnode, &freep);
+    // long size, freep;
+    // size = numa_node_size(mbinfo->destnode, &freep);
     //printf("node %d : total = %ld(B), free = %ld(B)\n", mbinfo->destnode, size, freep);
-    assert(freep >= mbinfo->working_size);
+    // assert(freep >= mbinfo->working_size);
 
 
     mbinfo->working_area =

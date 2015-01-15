@@ -111,7 +111,7 @@ void checkValidity(double first[], double second[], double multiplied[])
 }
 
 
-void primitiveMultiply_withoutBlocking(double first[], double second[], double multiply[],
+void primitiveMultiply_withoutBlocking(double *first, double *second, double *multiply,
   int startColumn, int lastColumn)
 {
 
@@ -129,7 +129,7 @@ void primitiveMultiply_withoutBlocking(double first[], double second[], double m
   }
 }
 
-void primitiveMultiply_withBlocking(double A[], double B[], double C[],
+void primitiveMultiply_withBlocking(double *A, double *B, double *C,
   int startColumn, int lastColumn)
 {
   const int NB = 40;
@@ -270,11 +270,11 @@ void doubleBlockedMultiply(double A[], double B[], double C[]) {
 
 
 
-void parallelSum_multiplyPart(parallelSum_args *args) {
+void *parallelSum_multiplyPart(void *uncastedArgs) {
   struct timespec start, end;
-  double sum = 0;
   double seconds;
   clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start);
+  parallelSum_args *args = (parallelSum_args*) uncastedArgs;
 
   if (useNumaAdvantages) {
     if (!args->isFirst) {
@@ -334,7 +334,7 @@ void parallelSum_multiplyPart(parallelSum_args *args) {
 
   printf("parallelSum_multiplyPart took: %f\n\n", seconds);
 
-
+  return NULL;
 }
 
 void printMatrix(double m[]) {
@@ -430,7 +430,7 @@ void parallelSum(double first[], double second[], double multiply[]) {
     threadArgs[i].output = (firstHalf || true) ? multiply : resultMatrixB;
     threadArgs[i].isFirst = firstHalf;
 
-    rc = pthread_create( &thread[i],  &attr, parallelSum_multiplyPart, (void*) &threadArgs[i]);
+    rc = pthread_create(&thread[i],  &attr, parallelSum_multiplyPart, (void*) &threadArgs[i]);
     if(rc) {
       fprintf(stderr,"Error - pthread_create() return code: %d\n",rc);
       exit(EXIT_FAILURE);
@@ -475,36 +475,22 @@ void parallelNaive(double first[], double second[], double multiply[])
   struct timespec start, end;
   float seconds;
 
-  double *firstA, *firstB, *secondA, *secondB, *resultMatrixB;
   clock_gettime(CLOCK_MONOTONIC, &start);
 
-  // if (useNumaAdvantages) {
-    //
-    // create copies of first, second and multiply on numa node 0 and 1
-    //
-
-    double** firstCopies = malloc(NUM_NODES * sizeof(double*));
-    double** secondCopies = malloc(NUM_NODES * sizeof(double*));
-    double** resultCopies = malloc(NUM_NODES * sizeof(double*));
+  double** firstCopies = malloc(NUM_NODES * sizeof(double*));
+  double** secondCopies = malloc(NUM_NODES * sizeof(double*));
+  double** resultCopies = malloc(NUM_NODES * sizeof(double*));
 
 
-    for (int i = 0; i < NUM_NODES; ++i) {
-      firstCopies[i] = (double *) numa_alloc_onnode(2 * halfMatrixSize, i);
-      secondCopies[i] = (double *) numa_alloc_onnode(2 * halfMatrixSize, i);
-      resultCopies[i] = (double *) numa_alloc_onnode(2 * halfMatrixSize, i);
+  for (int i = 0; i < NUM_NODES; ++i) {
+    firstCopies[i] = (double *) numa_alloc_onnode(2 * halfMatrixSize, i);
+    secondCopies[i] = (double *) numa_alloc_onnode(2 * halfMatrixSize, i);
+    resultCopies[i] = (double *) numa_alloc_onnode(2 * halfMatrixSize, i);
 
-      memcpy(firstCopies[i], first, 2 * halfMatrixSize);
-      memcpy(secondCopies[i], second, 2 * halfMatrixSize);
-      memcpy(resultCopies[i], multiply, 2 * halfMatrixSize);
-    }
-
-  // } else {
-  //   firstA = first;
-  //   firstB = first;
-  //   secondA = second;
-  //   secondB = second;
-  //   resultMatrixB = multiply;
-  // }
+    memcpy(firstCopies[i], first, 2 * halfMatrixSize);
+    memcpy(secondCopies[i], second, 2 * halfMatrixSize);
+    memcpy(resultCopies[i], multiply, 2 * halfMatrixSize);
+  }
 
   clock_gettime(CLOCK_MONOTONIC, &end);
   seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
