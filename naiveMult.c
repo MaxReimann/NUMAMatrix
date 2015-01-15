@@ -21,7 +21,7 @@ typedef enum { false, true } bool;
 
 #define useNumaAdvantages true
 #define forceSingleNode false
-
+#define useBlocking true
 
 typedef struct {
   int startColumn;
@@ -43,7 +43,6 @@ typedef struct {
 
 void *multiplyPart(void *args)
 {
-  int k,j,i;
   struct timespec start, end;
   clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start);
   threadArguments *a = (threadArguments*) args;
@@ -58,15 +57,11 @@ void *multiplyPart(void *args)
   double* first = a->first;
   double* second = a->second;
   double* output = a->output;
-  double tmpSum;
-  for (i=a->startColumn; i <= a->lastColumn; i++) {
-    for (k = 0; k < ndim; k++) {
-      tmpSum = 0;
-      for (j = 0; j < ndim; j++) {
-        tmpSum += first[IDX(i,j)] * second[IDX(j,k)];
-      }
-      output[IDX(i,k)] += tmpSum;
-    }
+
+  if (useBlocking) {
+    primitiveMultiply_withBlocking(first, second, output, a->startColumn, a->lastColumn);
+  } else {
+    primitiveMultiply_withoutBlocking(first, second, output, a->startColumn, a->lastColumn);
   }
 
   clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end);
@@ -116,17 +111,14 @@ void checkValidity(double first[], double second[], double multiplied[])
 }
 
 
-void naiveMultiplication(double first[], double second[], double multiply[])
+void primitiveMultiply_withoutBlocking(double first[], double second[], double multiply[],
+  int startColumn, int lastColumn)
 {
+
   int i, j, k;
-  struct timespec start, end;
-  double sum = 0;
-  clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start);
-
-  printf("Running naiveMultiplication\n");
-
+  int sum;
   // standard matrix multiplication
-  for (i = 0; i < ndim; i++) {
+  for (i = startColumn; i < lastColumn; i++) {
     for (k = 0; k < ndim; k++) {
       sum = 0;
       for (j = 0; j < ndim; j++) {
@@ -135,7 +127,41 @@ void naiveMultiplication(double first[], double second[], double multiply[])
       multiply[IDX(i, k)] += sum;
     }
   }
+}
 
+void primitiveMultiply_withBlocking(double A[], double B[], double C[],
+  int startColumn, int lastColumn)
+{
+  const int NB = 40;
+  double sum;
+
+  for(int i = startColumn; i < lastColumn; i += NB) {
+    for(int j = 0; j < ndim; j += NB) {
+      for(int k = 0; k < ndim; k += NB) {
+        int i_max = (i + NB < ndim)? i + NB : ndim;
+        int j_max = (j + NB < ndim)? j + NB : ndim;
+        int k_max = (k + NB < ndim)? k + NB : ndim;
+        for(int i0 = i; i0 < i_max; i0++) {
+          for(int j0 = j; j0 < j_max; j0++) {
+            sum = 0;
+            for(int k0 = k; k0 < k_max; k0++)
+              sum += A[IDX(i0, k0)] * B[IDX(k0, j0)];
+            C[IDX(i0, j0)] += sum;
+          }
+        }
+      }
+    }
+  }
+}
+
+void naiveMultiplication(double first[], double second[], double multiply[])
+{
+  struct timespec start, end;
+  clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start);
+
+  printf("Running naiveMultiplication\n");
+
+  primitiveMultiply_withoutBlocking(first, second, multiply, 0, ndim);
 
   clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end);
   double seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
@@ -145,7 +171,6 @@ void naiveMultiplication(double first[], double second[], double multiply[])
 
 void doubleBlockedMultiply(double A[], double B[], double C[]) {
   struct timespec start, end;
-  double sum = 0;
   // MMM loop nest (j, i, k)
 
   int NB = 40;
@@ -156,17 +181,17 @@ void doubleBlockedMultiply(double A[], double B[], double C[]) {
   // ku 8 mu 10 nu 40 seconds 1.50
   // ku 20 mu 10 nu 20 seconds 1.50
 
-  int maxKU = 500;
-  int maxMU = 500;
-  int maxNU = 500;
+  // int maxKU = 500;
+  // int maxMU = 500;
+  // int maxNU = 500;
   double seconds;
 
   // int KU = 1;
   // int MU = 2;
   // int NU = 2;
 
-  float bestTime = 100000;
-  int bestKU, bestMU, bestNU;
+  // float bestTime = 100000;
+  // int bestKU, bestMU, bestNU;
 
   #define KU 2
   #define MU 10
@@ -496,7 +521,7 @@ void parallelNaive(double first[], double second[], double multiply[])
     int currentNode = NUM_NODES * i / NUM_THREADS;
 
     threadArgs[i].startColumn = ndim / NUM_THREADS * i;
-    threadArgs[i].lastColumn = (ndim / NUM_THREADS * (i+1)) - 1;
+    threadArgs[i].lastColumn = ndim / NUM_THREADS * (i + 1);
     threadArgs[i].first = firstCopies[currentNode];
     threadArgs[i].second = secondCopies[currentNode];
     threadArgs[i].output = resultCopies[currentNode];
