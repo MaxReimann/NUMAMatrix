@@ -18,7 +18,7 @@
 *	    recursive call for 4 half-size submatrices
 */
 
-#define BREAK 16
+#define BREAK 32
 
 /*
 * A matrix is defined to be a pointer to a ``union _matrix'', which

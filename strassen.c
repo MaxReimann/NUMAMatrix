@@ -38,19 +38,15 @@ void strassen_multiply(int n, matrix a, matrix b, matrix c, matrix d)
 	if (n <= BREAK) {
 		double sum, **p = a->d, **q = b->d, **r = c->d;
 		int i, j, k;
-		 const int NB =  2;
-		 
-		for(int i=0; i<ndim; i+=NB)
-		    for(int j=0; j<ndim; j+=NB)
-		      for(int k=0; k<ndim; k+=NB)
-		        for(int i0=i; i0<(i + NB); i0++)
-		          for(int j0=j; j0<(j + NB); j0++)
-		           {
-		              sum = 0;
-		              for(int k0=k; k0<(k + NB); k0++)
-		                sum += p[i][k] * q[k][j];
-		              r[i][j] = sum;
-		            }
+
+		for(int i=0; i<n; i++)
+		    for(int j=0; j<n; j++)
+		    {
+		      sum = 0;
+		      for(int k=0; k<n; k++)
+	                sum += p[i][k] * q[k][j];
+	           r[i][j] = sum;
+	       }
 	}
 	else {
 		n /= 2;
@@ -85,7 +81,7 @@ void strassen_multiply(int n, matrix a, matrix b, matrix c, matrix d)
 
 
 /* c = a+b */
-void add(int n, matrix a, matrix b, matrix c)
+void inline add(int n, matrix a, matrix b, matrix c)
 {
 	if (n <= BREAK) {
 		double **p = a->d, **q = b->d, **r = c->d;
@@ -107,7 +103,7 @@ void add(int n, matrix a, matrix b, matrix c)
 }
 
 /* c = a-b */
-void sub(int n, matrix a, matrix b, matrix c)
+void inline sub(int n, matrix a, matrix b, matrix c)
 {
 	if (n <= BREAK) {
 		double **p = a->d, **q = b->d, **r = c->d;

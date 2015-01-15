@@ -1107,9 +1107,11 @@ bool gen_runningThreads[49];
 void *gen_parallelDispatcherP(void *args)
 {
     threadArguments *a = (threadArguments *) args;
-    a->p_fPtr(a->n, a->a, a->b, a->output);
     if (a->usesNuma)
+    {
     	numa_run_on_node(a->node);
+    }
+    a->p_fPtr(a->n, a->a, a->b, a->output);
 
     gen_runningThreads[a->index] = false;
     pthread_exit((void *) args);
@@ -1197,7 +1199,7 @@ void gen_parallelExecuteParts(threadArguments parts[], int n_parts, void* (*disp
 
 void strassenMassiveParallel(int n, double first[], double second[], double multiply[])
 {
-    printf("Running parallel strassenMultiplication\n");
+    printf("Running massive parallel strassenMultiplication\n");
     matrix a, b, c;
     threadArguments parts[49];
     threadArguments partsC[16];
@@ -1240,7 +1242,7 @@ void strassenMassiveParallel(int n, double first[], double second[], double mult
             parts[i].output = P[i];
             parts[i].p_fPtr = p_fPtr[i];
             parts[i].index = i;
-            parts[i].usesNuma = 1;
+            parts[i].usesNuma = -1;
 
             gen_runningThreads[i] = false;
         }
@@ -1299,7 +1301,7 @@ void strassenMassiveParallelNUMA(int n, double first[], double second[], double 
     #define NUMA_NODES 8
 
 
-    printf("Running parallel strassenMultiplication\n");
+    printf("Running massive parallel NUMA strassenMultiplication\n");
     matrix a[NUMA_NODES], b[NUMA_NODES], c;
     threadArguments parts[49];
     threadArguments partsC[16];
@@ -1341,7 +1343,6 @@ void strassenMassiveParallelNUMA(int n, double first[], double second[], double 
     //struct timespec start, end;
     clock_gettime(CLOCK_MONOTONIC, &start);
 
-
     n /= 2;
     
     for (int node=0; node < NUMA_NODES;node++)
@@ -1358,7 +1359,7 @@ void strassenMassiveParallelNUMA(int n, double first[], double second[], double 
             parts[i].output = P[i];
             parts[i].p_fPtr = p_fPtr[i];
             parts[i].index = i;
-            parts[i].usesNuma = -1;
+            parts[i].usesNuma = 1;
 
             gen_runningThreads[i] = false;
         }

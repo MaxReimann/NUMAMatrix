@@ -12,7 +12,7 @@
 #define IDX(Y, X) (ndim * Y + X) //rows first
 
 const int NUM_THREADS = 49;
-const int ndim = 2048;
+const int ndim = 10000;
 
 int main(int argc, char **argv)
 {
