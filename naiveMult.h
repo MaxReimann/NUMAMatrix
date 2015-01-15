@@ -2,15 +2,15 @@
 
 #pragma once
 
-void parallelNaive(double first[], double second[], double multiply[]);
-void naiveMultiplication(double first[], double second[], double multiply[]);
-void primitiveMultiply_withBlocking(double *A, double *B, double *C,
+void parallelNaive(long first[], long second[], long multiply[]);
+void naiveMultiplication(long first[], long second[], long multiply[]);
+void primitiveMultiply_withBlocking(long *A, long *B, long *C,
   int startColumn, int lastColumn);
-void primitiveMultiply_withoutBlocking(double *first, double *second, double *multiply,
+void primitiveMultiply_withoutBlocking(long *first, long *second, long *multiply,
   int startColumn, int lastColumn);
 
-void parallelSum(double first[], double second[], double multiply[]);
-void doubleBlockedMultiply(double A[], double B[], double C[]);
+void parallelSum(long first[], long second[], long multiply[]);
+void doubleBlockedMultiply(long A[], long B[], long C[]);
 
 int NUM_THREADS;
 int NUM_NODES;

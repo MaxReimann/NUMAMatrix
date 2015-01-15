@@ -29,7 +29,7 @@ int main(int argc, char **argv)
 	NUM_NODES = 8;
 
 	halfMatrixCellCount = (ndim * ndim / 2);
-	halfMatrixSize = halfMatrixCellCount * sizeof(double);
+	halfMatrixSize = halfMatrixCellCount * sizeof(long);
 
 	// srand(time(NULL));
 	srand(0);
@@ -47,9 +47,9 @@ int main(int argc, char **argv)
 	numa_node_size(1, &freep);
 	printf("freep in GB on 1: %f\n", (float) freep / 1E9);
 
-	double *first = (double *) numa_alloc_onnode(ndim * ndim * sizeof(double), destnode);
-	double *second = (double *) numa_alloc_onnode(ndim * ndim * sizeof(double), destnode);
-	double *multiply = (double *) numa_alloc_onnode(ndim * ndim * sizeof(double), destnode);
+	long *first = (long *) numa_alloc_onnode(ndim * ndim * sizeof(long), destnode);
+	long *second = (long *) numa_alloc_onnode(ndim * ndim * sizeof(long), destnode);
+	long *multiply = (long *) numa_alloc_onnode(ndim * ndim * sizeof(long), destnode);
 	int i, c, d;
 
 	numa_run_on_node(0);
@@ -87,7 +87,7 @@ int main(int argc, char **argv)
 			  }
 			}
     	printf("strassenMultiplication\n");
-			strassenMultiplication(ndim, first, second, multiply);
+			// strassenMultiplication(ndim, first, second, multiply);
 		}
     if (strcmp("3", argv[i]) == 0) {
   		for (c = 0 ; c < ndim; c++) {

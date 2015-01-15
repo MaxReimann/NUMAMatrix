@@ -1,4 +1,6 @@
 // #define _POSIX_C_SOURCE >= 199309L
+#define _GNU_SOURCE
+
 #include <time.h>
 #include <sys/time.h>
 #include <stdio.h>
@@ -21,21 +23,21 @@ typedef enum { false, true } bool;
 
 #define useNumaAdvantages true
 #define forceSingleNode false
-#define useBlocking true
+#define useBlocking false
 
 typedef struct {
   int startColumn;
   int lastColumn;
-  double *first;
-  double *second;
-  double *output;
+  long *first;
+  long *second;
+  long *output;
   int currentNode;
 } threadArguments;
 
 typedef struct {
-  double *partitionFirst;
-  double *partitionSecond;
-  double *output;
+  long *partitionFirst;
+  long *partitionSecond;
+  long *output;
   int summandIdx;
   int currentNode;
 } parallelSum_args;
@@ -63,20 +65,20 @@ void *multiplyPart(void *args)
   clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end);
   float seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
 
-  printf("naive parallel matrix multiplication (%d-%d) took: %f\n\n", a->startColumn, a->lastColumn, seconds);
+  printf("naive parallel matrix multiplication (%d-%d) took: %lu\n\n", a->startColumn, a->lastColumn, seconds);
 
 
   pthread_exit((void*) args);
 }
 
 
-void checkValidity(double first[], double second[], double multiplied[])
+void checkValidity(long first[], long second[], long multiplied[])
 {
   if (true)
     return;
 
   int i, j, k;
-  double sum = 0;
+  long sum = 0;
   bool valid = true;
   // standard matrix multiplication (see wikipedia pseudocode)
   for (i = 0; i < ndim; i++) {
@@ -87,7 +89,7 @@ void checkValidity(double first[], double second[], double multiplied[])
 
       if (multiplied[IDX(i,k)] != sum) {
         valid = false;
-        printf("result matrix not valid in row %d, col %d diff: %f \n", i, k, multiplied[IDX(i,k)] - sum);
+        printf("result matrix not valid in row %d, col %d diff: %lu \n", i, k, multiplied[IDX(i,k)] - sum);
         break;
       }
 
@@ -103,7 +105,7 @@ void checkValidity(double first[], double second[], double multiplied[])
 }
 
 
-void primitiveMultiply_withoutBlocking(double *first, double *second, double *multiply,
+void primitiveMultiply_withoutBlocking(long *first, long *second, long *multiply,
   int startColumn, int lastColumn)
 {
 
@@ -121,11 +123,11 @@ void primitiveMultiply_withoutBlocking(double *first, double *second, double *mu
   }
 }
 
-void primitiveMultiply_withBlocking(double *A, double *B, double *C,
+void primitiveMultiply_withBlocking(long *A, long *B, long *C,
   int startColumn, int lastColumn)
 {
   const int NB = 40;
-  double sum;
+  long sum;
 
   for(int i = startColumn; i < lastColumn; i += NB) {
     for(int j = 0; j < ndim; j += NB) {
@@ -146,7 +148,7 @@ void primitiveMultiply_withBlocking(double *A, double *B, double *C,
   }
 }
 
-void naiveMultiplication(double first[], double second[], double multiply[])
+void naiveMultiplication(long first[], long second[], long multiply[])
 {
   struct timespec start, end;
   clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start);
@@ -156,12 +158,12 @@ void naiveMultiplication(double first[], double second[], double multiply[])
   primitiveMultiply_withoutBlocking(first, second, multiply, 0, ndim);
 
   clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end);
-  double seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
+  long seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
 
-  printf("naiveMultiplication took: %f\n\n", seconds);
+  printf("naiveMultiplication took: %lu\n\n", seconds);
 }
 
-void doubleBlockedMultiply(double A[], double B[], double C[]) {
+void doubleBlockedMultiply(long A[], long B[], long C[]) {
   struct timespec start, end;
   // MMM loop nest (j, i, k)
 
@@ -176,7 +178,7 @@ void doubleBlockedMultiply(double A[], double B[], double C[]) {
   // int maxKU = 500;
   // int maxMU = 500;
   // int maxNU = 500;
-  double seconds;
+  long seconds;
 
   // int KU = 1;
   // int MU = 2;
@@ -238,7 +240,7 @@ void doubleBlockedMultiply(double A[], double B[], double C[]) {
   //       }
 
 
-        printf("KU: %d MU: %d NU: %d    seconds: %f\n", KU, MU, NU, seconds);
+        printf("KU: %d MU: %d NU: %d    seconds: %lu\n", KU, MU, NU, seconds);
 
   //       if (seconds > 3) {
   //         printf("don't check further NUs. continue...\n");
@@ -249,11 +251,11 @@ void doubleBlockedMultiply(double A[], double B[], double C[]) {
   //   }
   // }
 
-  // printf("best:   KU: %d MU: %d NU: %d    seconds: %f\n", bestKU, bestMU, bestNU, seconds);
+  // printf("best:   KU: %d MU: %d NU: %d    seconds: %lu\n", bestKU, bestMU, bestNU, seconds);
 
 
 
-  // printf("doubleBlockedMultiply took: %f\n\n", seconds);
+  // printf("doubleBlockedMultiply took: %lu\n\n", seconds);
 }
 
 
@@ -278,15 +280,15 @@ void *parallelSum_multiplyPart(void *uncastedArgs) {
 
   int x, y, z;
 
-  double* multiply = args->output;
-  double* partitionFirst = args->partitionFirst;
-  double* partitionSecond = args->partitionSecond;
+  long* multiply = args->output;
+  long* partitionFirst = args->partitionFirst;
+  long* partitionSecond = args->partitionSecond;
   int startZ = args->summandIdx;
   int sumCount = ndim / NUM_THREADS;
 
   int partitionSize = ndim / NUM_NODES;
   int offset = args->currentNode * partitionSize;
-  double tmpSum;
+  long tmpSum;
 
   if (useBlocking) {
     const int NB = 25;
@@ -308,6 +310,8 @@ void *parallelSum_multiplyPart(void *uncastedArgs) {
               tmpSum += partitionFirst[IDX(z, y) - offset] * partitionSecond[InvIDX(x, z) - offset];
             }
             multiply[IDX(y, x)] += tmpSum;
+          // __sync_add_and_fetch(&multiply[IDX(y, x)], tmpSum);
+
           }
         }
       }
@@ -336,21 +340,21 @@ void *parallelSum_multiplyPart(void *uncastedArgs) {
   clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end);
   seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
 
-  printf("parallelSum_multiplyPart took: %f\n\n", seconds);
+  printf("parallelSum_multiplyPart took: %lf\n\n", seconds);
   return NULL;
 }
 
-void printMatrix(double m[]) {
+void printMatrix(long m[]) {
   for (int y = 0; y < ndim; y++) {
     for (int x = 0; x < ndim; x++) {
-      printf("%f ", m[IDX(y, x)]);
+      printf("%lu ", m[IDX(y, x)]);
     }
     printf("\n");
   }
 }
 
-void transposeMatrix(double *matrixToTranspose) {
-  double tmp;
+void transposeMatrix(long *matrixToTranspose) {
+  long tmp;
   for (int x = 0; x < ndim; x++) {
     for (int y = x; y < ndim; y++) {
       tmp = matrixToTranspose[IDX(y, x)];
@@ -360,7 +364,7 @@ void transposeMatrix(double *matrixToTranspose) {
   }
 }
 
-void parallelSum(double first[], double second[], double multiply[]) {
+void parallelSum(long first[], long second[], long multiply[]) {
   // basic process:
   //   divide first vertically in n parts and
   //   divide second horizontally in n parts
@@ -382,21 +386,21 @@ void parallelSum(double first[], double second[], double multiply[]) {
   // divide matrices and move to different nodes
   //
 
-  assert(((double) ndim) / NUM_THREADS - (int)(ndim / NUM_THREADS) == 0);
-  assert(((double) ndim) / NUM_NODES - (int)(ndim / NUM_NODES) == 0);
+  assert(((long) ndim) / NUM_THREADS - (int)(ndim / NUM_THREADS) == 0);
+  assert(((long) ndim) / NUM_NODES - (int)(ndim / NUM_NODES) == 0);
 
   int partitionSize = ndim / NUM_NODES;
 
 
-  double** firstPartitions = malloc(NUM_NODES * sizeof(double*));
-  double** secondPartitions = malloc(NUM_NODES * sizeof(double*));
-  double** resultPartitions = malloc(NUM_NODES * sizeof(double*));
+  long** firstPartitions = malloc(NUM_NODES * sizeof(long*));
+  long** secondPartitions = malloc(NUM_NODES * sizeof(long*));
+  long** resultPartitions = malloc(NUM_NODES * sizeof(long*));
 
 
   for (int i = 0; i < NUM_NODES; ++i) {
-    firstPartitions[i] = (double *) numa_alloc_onnode(partitionSize, i);
-    secondPartitions[i] = (double *) numa_alloc_onnode(partitionSize, i);
-    resultPartitions[i] = (double *) numa_alloc_onnode(2 * halfMatrixSize, i);
+    firstPartitions[i] = (long *) numa_alloc_onnode(partitionSize, i);
+    secondPartitions[i] = (long *) numa_alloc_onnode(partitionSize, i);
+    resultPartitions[i] = (long *) numa_alloc_onnode(2 * halfMatrixSize, i);
 
     memcpy(firstPartitions[i], first + partitionSize * i, partitionSize);
     memcpy(secondPartitions[i], second + partitionSize * i, partitionSize);
@@ -404,7 +408,7 @@ void parallelSum(double first[], double second[], double multiply[]) {
 
   clock_gettime(CLOCK_MONOTONIC, &end);
   seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
-  printf("preprocessing of input took: %f\n\n", seconds);
+  printf("preprocessing of input took: %lu\n\n", seconds);
 
   //
   // set up threads
@@ -468,7 +472,7 @@ void parallelSum(double first[], double second[], double multiply[]) {
 }
 
 
-void parallelNaive(double first[], double second[], double multiply[])
+void parallelNaive(long first[], long second[], long multiply[])
 {
   int rc;
   pthread_t thread[NUM_THREADS];
@@ -480,15 +484,15 @@ void parallelNaive(double first[], double second[], double multiply[])
 
   clock_gettime(CLOCK_MONOTONIC, &start);
 
-  double** firstCopies = malloc(NUM_NODES * sizeof(double*));
-  double** secondCopies = malloc(NUM_NODES * sizeof(double*));
-  double** resultCopies = malloc(NUM_NODES * sizeof(double*));
+  long** firstCopies = malloc(NUM_NODES * sizeof(long*));
+  long** secondCopies = malloc(NUM_NODES * sizeof(long*));
+  long** resultCopies = malloc(NUM_NODES * sizeof(long*));
 
 
   for (int i = 0; i < NUM_NODES; ++i) {
-    firstCopies[i] = (double *) numa_alloc_onnode(2 * halfMatrixSize, i);
-    secondCopies[i] = (double *) numa_alloc_onnode(2 * halfMatrixSize, i);
-    resultCopies[i] = (double *) numa_alloc_onnode(2 * halfMatrixSize, i);
+    firstCopies[i] = (long *) numa_alloc_onnode(2 * halfMatrixSize, i);
+    secondCopies[i] = (long *) numa_alloc_onnode(2 * halfMatrixSize, i);
+    resultCopies[i] = (long *) numa_alloc_onnode(2 * halfMatrixSize, i);
 
     memcpy(firstCopies[i], first, 2 * halfMatrixSize);
     memcpy(secondCopies[i], second, 2 * halfMatrixSize);
@@ -497,7 +501,7 @@ void parallelNaive(double first[], double second[], double multiply[])
   clock_gettime(CLOCK_MONOTONIC, &end);
   seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
 
-  printf("parallelNaive preprocessing took: %f\n\n", seconds);
+  printf("parallelNaive preprocessing took: %lu\n\n", seconds);
 
   printf("Running parallelNaive new\n");
 
@@ -539,7 +543,7 @@ void parallelNaive(double first[], double second[], double multiply[])
   clock_gettime(CLOCK_MONOTONIC, &end);
   seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
 
-  printf("parallelNaive took: %f\n\n", seconds);
+  printf("parallelNaive took: %lu\n\n", seconds);
 
   checkValidity(first, second, multiply);
 
