@@ -90,12 +90,12 @@ bool isValid(double first[], double second[], double multiplied[])
     return valid;
 }
 
-void blockedMultiply(double A[], double B[], double C[])
+void blockedMultiply(double A[], double B[], double C[], int blockSize)
 {
   struct timespec start, end;
   clock_gettime(CLOCK_MONOTONIC, &start);
 
-  const int NB =  2;
+  int NB =  blockSize;
   double sum;
 
   for(int i=0; i<ndim; i+=NB)

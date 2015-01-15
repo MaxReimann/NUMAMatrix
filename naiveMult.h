@@ -9,4 +9,4 @@ void parallelNaive(double first[], double second[], double multiply[]);
 void naiveMultiplication(double first[], double second[], double multiply[]);
 bool isValid(double first[], double second[], double multiplied[]);
 
-void blockedMultiply(double A[], double B[], double C[]);
+void blockedMultiply(double A[], double B[], double C[], int blockSize);

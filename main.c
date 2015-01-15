@@ -15,7 +15,7 @@
 int indexOfParameter(int argc, char **argv, char* parameter);
 
 int NUM_THREADS = 49;
-int ndim = 2048;
+int ndim = 2000;
 
 int main(int argc, char **argv)
 {
@@ -27,6 +27,7 @@ int main(int argc, char **argv)
     int indexDimension = indexOfParameter(argc, argv, "-n");
     if (indexDimension!=-1)
         ndim = atoi(argv[indexDimension+1]);
+
 
     srand(1);
     double *first = malloc(ndim * ndim * sizeof(double));
@@ -53,15 +54,23 @@ int main(int argc, char **argv)
     {
         if (strcmp("0", argv[i]) == 0)
             parallelNaive(first, second, multiply);
-        if (strcmp("1", argv[i]) == 0)
+        else if (strcmp("1", argv[i]) == 0)
         {
             for (c = 0 ; c < ndim; c++)
             {
                 for (d = 0 ; d < ndim; d++)
                     multiply[IDX(c, d)] = 0;
             }
-            blockedMultiply(first, second, multiply);
-            isValid(first, second, multiply);
+
+            int blockSize = 100;
+            if (i+1 < argc && strcmp(argv[i+1],"-b")==0)
+            {
+                blockSize = atoi(argv[i+2]);
+                i+=2;
+                printf("using blocksize: %d\n",blockSize);
+            }
+            blockedMultiply(first, second, multiply, blockSize);
+            //isValid(first, second, multiply);
 
             // for (c = 0 ; c < ndim; c++)
             // {
@@ -70,7 +79,7 @@ int main(int argc, char **argv)
             // }
             // naiveMultiplication(first, second, multiply);
         }
-        if (strcmp("2", argv[i]) == 0)
+        else if (strcmp("2", argv[i]) == 0)
         {
             for (c = 0 ; c < ndim; c++)
             {
@@ -82,7 +91,7 @@ int main(int argc, char **argv)
             //isValid(first, second, multiply);
         }
 
-        if (strcmp("3", argv[i]) == 0)
+        else if (strcmp("3", argv[i]) == 0)
         {
             for (c = 0 ; c < ndim; c++)
             {
@@ -100,7 +109,7 @@ int main(int argc, char **argv)
 
 int indexOfParameter(int argc, char **argv, char* parameter)
 {
-    for (i = 1; i < argc; ++i)
+    for (int i = 1; i < argc; ++i)
     {
         if (strcmp(parameter, argv[i]) == 0) 
             return i;

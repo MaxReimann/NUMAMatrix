@@ -38,11 +38,11 @@ void strassen_multiply(int n, matrix a, matrix b, matrix c, matrix d)
 	if (n <= BREAK) {
 		double sum, **p = a->d, **q = b->d, **r = c->d;
 		int i, j, k;
-		 const int NB =  2;
+		const int NB =  BREAK;
 		 
-		for(int i=0; i<ndim; i+=NB)
-		    for(int j=0; j<ndim; j+=NB)
-		      for(int k=0; k<ndim; k+=NB)
+		for(int i=0; i<n; i+=NB)
+		    for(int j=0; j<n; j+=NB)
+		      for(int k=0; k<n; k+=NB)
 		        for(int i0=i; i0<(i + NB); i0++)
 		          for(int j0=j; j0<(j + NB); j0++)
 		           {
