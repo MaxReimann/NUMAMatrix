@@ -6,7 +6,7 @@
 #include <pthread.h>
 #include <sched.h>
 #include <numa.h>
-
+#include <assert.h>
 #include "naiveMult.h"
 
 // #define NUM_THREADS 1
@@ -33,11 +33,11 @@ typedef struct {
 } threadArguments;
 
 typedef struct {
-  double *halfFirst;
-  double *halfSecond;
+  double *partitionFirst;
+  double *partitionSecond;
   double *output;
   int summandIdx;
-  bool isFirst;
+  int currentNode;
 } parallelSum_args;
 
 
@@ -54,14 +54,10 @@ void *multiplyPart(void *args)
     numa_run_on_node(0);
   }
 
-  double* first = a->first;
-  double* second = a->second;
-  double* output = a->output;
-
   if (useBlocking) {
-    primitiveMultiply_withBlocking(first, second, output, a->startColumn, a->lastColumn);
+    primitiveMultiply_withBlocking(a->first, a->second, a->output, a->startColumn, a->lastColumn);
   } else {
-    primitiveMultiply_withoutBlocking(first, second, output, a->startColumn, a->lastColumn);
+    primitiveMultiply_withoutBlocking(a->first, a->second, a->output, a->startColumn, a->lastColumn);
   }
 
   clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end);
@@ -82,18 +78,14 @@ void checkValidity(double first[], double second[], double multiplied[])
   int i, j, k;
   double sum = 0;
   bool valid = true;
-  //standard matrix multiplication (see wikipedia pseudocode)
-  for (i = 0; i < ndim; i++)
-  {
-    for (k = 0; k < ndim; k++)
-    {
-      for (j = 0; j < ndim; j++)
-      {
+  // standard matrix multiplication (see wikipedia pseudocode)
+  for (i = 0; i < ndim; i++) {
+    for (k = 0; k < ndim; k++) {
+      for (j = 0; j < ndim; j++) {
         sum = sum + first[IDX(i,j)]*second[IDX(j,k)];
       }
 
-      if (multiplied[IDX(i,k)] != sum)
-      {
+      if (multiplied[IDX(i,k)] != sum) {
         valid = false;
         printf("result matrix not valid in row %d, col %d diff: %f \n", i, k, multiplied[IDX(i,k)] - sum);
         break;
@@ -138,9 +130,9 @@ void primitiveMultiply_withBlocking(double *A, double *B, double *C,
   for(int i = startColumn; i < lastColumn; i += NB) {
     for(int j = 0; j < ndim; j += NB) {
       for(int k = 0; k < ndim; k += NB) {
-        int i_max = (i + NB < ndim)? i + NB : ndim;
-        int j_max = (j + NB < ndim)? j + NB : ndim;
-        int k_max = (k + NB < ndim)? k + NB : ndim;
+        int i_max = (i + NB < ndim) ? i + NB : ndim;
+        int j_max = (j + NB < ndim) ? j + NB : ndim;
+        int k_max = (k + NB < ndim) ? k + NB : ndim;
         for(int i0 = i; i0 < i_max; i0++) {
           for(int j0 = j; j0 < j_max; j0++) {
             sum = 0;
@@ -277,9 +269,7 @@ void *parallelSum_multiplyPart(void *uncastedArgs) {
   parallelSum_args *args = (parallelSum_args*) uncastedArgs;
 
   if (useNumaAdvantages) {
-    if (!args->isFirst) {
-      numa_run_on_node(1);
-    }
+    numa_run_on_node(args->currentNode);
   }
 
   if (forceSingleNode) {
@@ -289,42 +279,56 @@ void *parallelSum_multiplyPart(void *uncastedArgs) {
   int x, y, z;
 
   double* multiply = args->output;
-  double* halfFirst = args->halfFirst;
-  double* halfSecond = args->halfSecond;
+  double* partitionFirst = args->partitionFirst;
+  double* partitionSecond = args->partitionSecond;
   int startZ = args->summandIdx;
   int sumCount = ndim / NUM_THREADS;
 
-  int offset = args->isFirst ? 0 : halfMatrixCellCount;
-
+  int partitionSize = ndim / NUM_NODES;
+  int offset = args->currentNode * partitionSize;
   double tmpSum;
-  for (x = 0; x < ndim; x++) {
-    for (y = 0; y < ndim; y++) {
-      tmpSum = 0;
-      // printf("startZ: %d\n", startZ);
-      // printf("sumCount: %d\n", sumCount);
-      for (z = startZ; z < startZ + sumCount; z++) {
-        // compute the z-th summand for cell (y, z):
-        // = (y, z) * (z, x)
-        // since we transposed the first matrix, the index for the first matrix
-        // has to be inverted (we use InvIDX instead of IDX)
 
-        // if (IDX(y, x) >= halfMatrixCellCount * 2)
-        //   printf("0 1 invalid idx: %d %d %d %d\n", IDX(y, z), x, y, z);
-        // if (InvIDX(y, z) >= halfMatrixCellCount)
-        //   printf("0 2 invalid idx: %d %d %d %d\n", InvIDX(y, z), x, y, z);
-        // if (IDX(z, x) >= halfMatrixCellCount)
-        //   printf("0 3 invalid idx: %d %d %d %d\n", IDX(z, x), x, y, z);
-        // printf("0 startZ: %d z: %d x: %d y: %d\n", startZ, z, x, y);
+  if (useBlocking) {
+    const int NB = 25;
 
-        // printf("%d * %d = %d\n",
-        //   halfFirst[IDX(z, y) - offset],
-        //   halfSecond[InvIDX(x, z) - offset],
-        //   halfFirst[IDX(z, y) - offset] * halfSecond[InvIDX(x, z) - offset]
-        // );
+    for (int bigY = 0; bigY < ndim; bigY += NB) {
+      for (int bigX = 0; bigX < ndim; bigX += NB) {
+        int x_max = (bigX + NB < ndim) ? bigX + NB : ndim;
+        int y_max = (bigY + NB < ndim) ? bigY + NB : ndim;
 
-        tmpSum += halfFirst[IDX(z, y) - offset] * halfSecond[InvIDX(x, z) - offset];
+        for (y = bigY; y < y_max; y++) {
+          for (x = bigX; x < x_max; x++) {
+            tmpSum = 0;
+            for (z = startZ; z < startZ + sumCount; z++) {
+              // compute the z-th summand for cell (y, z):
+              // = (y, z) * (z, x)
+              // since we transposed the first matrix, the index for the first matrix
+              // has to be inverted (we use InvIDX instead of IDX)
+
+              tmpSum += partitionFirst[IDX(z, y) - offset] * partitionSecond[InvIDX(x, z) - offset];
+            }
+            multiply[IDX(y, x)] += tmpSum;
+          }
+        }
       }
-      multiply[IDX(y, x)] += tmpSum;
+    }
+
+  } else {
+    for (y = 0; y < ndim; y++) {
+      for (x = 0; x < ndim; x++) {
+        for (z = startZ; z < startZ + sumCount; z++) {
+          tmpSum = 0;
+          // compute the z-th summand for cell (y, z):
+          // = (y, z) * (z, x)
+          // since we transposed the first matrix, the index for the first matrix
+          // has to be inverted (we use InvIDX instead of IDX)
+
+          tmpSum += partitionFirst[IDX(z, y) - offset] * partitionSecond[InvIDX(x, z) - offset];
+        }
+        multiply[IDX(y, x)] += tmpSum;
+        // __sync_add_and_fetch(&multiply[IDX(y, x)], tmpSum);
+
+      }
     }
   }
 
@@ -333,7 +337,6 @@ void *parallelSum_multiplyPart(void *uncastedArgs) {
   seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
 
   printf("parallelSum_multiplyPart took: %f\n\n", seconds);
-
   return NULL;
 }
 
@@ -378,26 +381,26 @@ void parallelSum(double first[], double second[], double multiply[]) {
   //
   // divide matrices and move to different nodes
   //
-  double *firstA = (double *) numa_alloc_onnode(halfMatrixSize, 0);
-  double *firstB = (double *) numa_alloc_onnode(halfMatrixSize, useNumaAdvantages);
 
-  double *secondA = (double *) numa_alloc_onnode(halfMatrixSize, 0);
-  double *secondB = (double *) numa_alloc_onnode(halfMatrixSize, useNumaAdvantages);
+  assert(((double) ndim) / NUM_THREADS - (int)(ndim / NUM_THREADS) == 0);
+  assert(((double) ndim) / NUM_NODES - (int)(ndim / NUM_NODES) == 0);
 
-  double *resultMatrixB = (double *) numa_alloc_onnode(2 * halfMatrixSize, useNumaAdvantages);
+  int partitionSize = ndim / NUM_NODES;
 
-  memcpy(firstA, first, halfMatrixSize);
-  memcpy(firstB, first + halfMatrixCellCount, halfMatrixSize);
 
-  memcpy(secondA, second, halfMatrixSize);
-  memcpy(secondB, second + halfMatrixCellCount, halfMatrixSize);
+  double** firstPartitions = malloc(NUM_NODES * sizeof(double*));
+  double** secondPartitions = malloc(NUM_NODES * sizeof(double*));
+  double** resultPartitions = malloc(NUM_NODES * sizeof(double*));
 
-  numa_tonode_memory((void*) firstA, halfMatrixSize, 0);
-  numa_tonode_memory((void*) firstB, halfMatrixSize, useNumaAdvantages);
 
-  numa_tonode_memory((void*) secondA, halfMatrixSize, 0);
-  numa_tonode_memory((void*) secondB, halfMatrixSize, useNumaAdvantages);
+  for (int i = 0; i < NUM_NODES; ++i) {
+    firstPartitions[i] = (double *) numa_alloc_onnode(partitionSize, i);
+    secondPartitions[i] = (double *) numa_alloc_onnode(partitionSize, i);
+    resultPartitions[i] = (double *) numa_alloc_onnode(2 * halfMatrixSize, i);
 
+    memcpy(firstPartitions[i], first + partitionSize * i, partitionSize);
+    memcpy(secondPartitions[i], second + partitionSize * i, partitionSize);
+  }
 
   clock_gettime(CLOCK_MONOTONIC, &end);
   seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
@@ -423,12 +426,12 @@ void parallelSum(double first[], double second[], double multiply[]) {
 
   int sumCount = ndim / NUM_THREADS;
   for (int i = 0; i < NUM_THREADS; i++) {
-    int firstHalf = i < NUM_THREADS / 2;
+    int currentNode = NUM_NODES * i / NUM_THREADS;
     threadArgs[i].summandIdx = i * sumCount;
-    threadArgs[i].halfFirst = firstHalf ? firstA : firstB;
-    threadArgs[i].halfSecond = firstHalf ? secondA : secondB;
-    threadArgs[i].output = (firstHalf || true) ? multiply : resultMatrixB;
-    threadArgs[i].isFirst = firstHalf;
+    threadArgs[i].partitionFirst = firstPartitions[currentNode];
+    threadArgs[i].partitionSecond = secondPartitions[currentNode];
+    threadArgs[i].output = resultPartitions[currentNode];
+    threadArgs[i].currentNode = currentNode;
 
     rc = pthread_create(&thread[i],  &attr, parallelSum_multiplyPart, (void*) &threadArgs[i]);
     if(rc) {
@@ -489,7 +492,6 @@ void parallelNaive(double first[], double second[], double multiply[])
 
     memcpy(firstCopies[i], first, 2 * halfMatrixSize);
     memcpy(secondCopies[i], second, 2 * halfMatrixSize);
-    memcpy(resultCopies[i], multiply, 2 * halfMatrixSize);
   }
 
   clock_gettime(CLOCK_MONOTONIC, &end);

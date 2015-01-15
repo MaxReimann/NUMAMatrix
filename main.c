@@ -31,8 +31,6 @@ int main(int argc, char **argv)
 	halfMatrixCellCount = (ndim * ndim / 2);
 	halfMatrixSize = halfMatrixCellCount * sizeof(double);
 
-	assert(((double) ndim) / NUM_THREADS - (int)(ndim / NUM_THREADS) == 0);
-
 	// srand(time(NULL));
 	srand(0);
 
