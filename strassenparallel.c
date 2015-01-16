@@ -196,7 +196,7 @@ void parallelExecuteParts(threadArguments parts[])
 
 
 
-void strassenParallel(int n, double first[], double second[], double multiply[])
+void strassenParallel(int n, float first[], float second[], float multiply[])
 {
     printf("Running parallel strassenMultiplication\n");
     matrix a, b, c, P1, P2, P3, P4, P5, P6, P7;

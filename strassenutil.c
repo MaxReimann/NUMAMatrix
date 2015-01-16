@@ -20,6 +20,7 @@
 
 #include "strassenutil.h"
 #include "globals.h"
+#include <assert.h>  
 
 #define IDX(Y, X) ((n * Y + X)) //rows first
 
@@ -33,7 +34,7 @@ void strassen_randomfill(int n, matrix a)
     if (n <= BREAK)
     {
         int i, j;
-        double *p = a->d, T = -(double)(1 << 31);
+        float *p = a->d, T = -(float)(1 << 31);
 
         for (i = 0; i < n; i++)
             for (j = 0; j < n; j++)
@@ -51,31 +52,28 @@ void strassen_randomfill(int n, matrix a)
 
 
 /* Fill the matrix from a flat matrix*/
-void strassen_set(int n, matrix a, double flatMatrix[], int startRow, int startColumn)
+void strassen_set(int n, matrix a, float flatMatrix[], int startRow, int startColumn)
 {
     #define INDX(Y, X) (ndim * Y + X) //rows first
     if (n <= BREAK)
     {
         int i, j;
-        double *p = a->d;
+        float *p = a->d;
 
         for (i = 0; i < n; i++)
         {
             for (j = 0; j < n; j++)
+            {
+
                 p[IDX(i,j)] = flatMatrix[INDX((startRow + i), (startColumn + j))];
+            }
 
         }
-
-
-
-
-
 
     }
     else
     {
         n /= 2;
-        printf("n: %d row+n:%d, col:%d\n", n,startRow+n,startColumn);
         strassen_set(n, a11, flatMatrix, startRow, startColumn);
         strassen_set(n, a12, flatMatrix, startRow, startColumn + n);
         strassen_set(n, a21, flatMatrix, startRow + n, startColumn);
@@ -85,13 +83,13 @@ void strassen_set(int n, matrix a, double flatMatrix[], int startRow, int startC
 
 
 /* Write matrix into flat array*/
-void strassen_get(int n, matrix a, double outputMat[], int startRow, int startColumn)
+void strassen_get(int n, matrix a, float outputMat[], int startRow, int startColumn)
 {
     #define INDX(Y, X) (ndim * Y + X) //uses ndim not n!
     if (n <= BREAK)
     {
         int i, j;
-        double *p = a->d;
+        float *p = a->d;
 
         for (i = 0; i < n; i++)
         {
@@ -100,10 +98,7 @@ void strassen_get(int n, matrix a, double outputMat[], int startRow, int startCo
                 
                 outputMat[INDX((startRow + i), (startColumn + j))] = p[IDX(i,j)];
             }
-            // printf("\n");
         }
-
-
     }
     else
     {
@@ -123,7 +118,7 @@ void strassen_naivemult(int n, matrix a, matrix b, matrix c)    /* c = a*b */
 
     if (n <= BREAK)
     {
-        double sum, *p = a->d, *q = b->d, *r = c->d;
+        float sum, *p = a->d, *q = b->d, *r = c->d;
         int i, j, k;
 
         for (i = 0; i < n; i++)
@@ -159,11 +154,14 @@ void strassen_naivemult(int n, matrix a, matrix b, matrix c)    /* c = a*b */
 int sizeofMatrix(int n)
 {
     matrix a;
-    double alloc = sizeof(*a);
+    int alloc = sizeof(*a);
 
     if (n <= BREAK){
 
-        alloc += n * n * sizeof(double);
+        if (alloc%16!=0)
+            alloc += alloc%16;
+
+        alloc += n * n * sizeof(float);
     }
     else 
     {
@@ -191,16 +189,24 @@ void *my_malloc(void  *memory, int *memPointer,int size)
 
 matrix _strassen_newmatrix_block(int n, void  *memory, int *memPointer)
 {
-    matrix a = (matrix) my_malloc(memory, memPointer, sizeof(*a));
+    matrix a;
+    
+    a = (matrix) my_malloc(memory, memPointer, sizeof(*a));
 
     if (n<= BREAK)
     {
-        a->d = (double *) my_malloc(memory, memPointer, n * n * sizeof(double));
+        //fix 16bit alignment
+        if ((*memPointer)%16!=0)
+        {
+            *memPointer += (*memPointer)%16;
+        }
+        a->d = (float *) my_malloc(memory, memPointer, n * n * sizeof(float));
+
     }
     else
     {
         n /= 2;
-        a->p =  (matrix *) my_malloc(memory, memPointer, 4 * sizeof(double));
+        a->p =  (matrix *) my_malloc(memory, memPointer, 4 * sizeof(matrix));
 
         a11 = _strassen_newmatrix_block(n, memory, memPointer);
         a12 = _strassen_newmatrix_block(n, memory, memPointer);
@@ -211,11 +217,12 @@ matrix _strassen_newmatrix_block(int n, void  *memory, int *memPointer)
 
 }
 
+
+
 matrix strassen_newmatrix_block(int n)
 {
     int size = sizeofMatrix(n);
     void *memory=_mm_malloc(size, 16);
-    //printf("memsize %d\n", size);
 
     int memPointer = 0;
     return _strassen_newmatrix_block(n, memory,&memPointer);
@@ -224,11 +231,13 @@ matrix strassen_newmatrix_block(int n)
 matrix strassen_newmatrix_block_NUMA(int n, int node)
 {
     int size = sizeofMatrix(n);
-    void *memory=numa_alloc_onnode(size, node);
-    //printf("memsize %d\n", size);
+    void *memory=numa_alloc_onnode(size+15, node);
+    assert(memory); // some kind of error handling
+    /* round up to multiple of 16, add 15 and round down by masking*/
+    void *alignedMemory = (void *)(((unsigned long)memory + 15) & ~0x0f);
 
     int memPointer = 0;
-    return _strassen_newmatrix_block(n, memory,&memPointer);
+    return _strassen_newmatrix_block(n, alignedMemory,&memPointer);
 }
 
 
@@ -239,21 +248,17 @@ matrix strassen_newmatrix(int n)
     matrix a;
 
     a = (matrix)malloc(sizeof(*a));
-    check(a != NULL, "newmatrix: out of space for matrix");
+
     if (n <= BREAK)
     {
         int i;
 
-        a->d = (double *)calloc(n*n, sizeof(double));
-        check(a->d != NULL,
-              "newmatrix: out of space for rows");
+        a->d = (float *)_mm_malloc(n*n *sizeof(float),16);
     }
     else
     {
         n /= 2;
         a->p = (matrix *)calloc(4, sizeof(matrix));
-        check(a->p != NULL,
-              "newmatrix: out of space for submatrices");
         a11 = strassen_newmatrix(n);
         a12 = strassen_newmatrix(n);
         a21 = strassen_newmatrix(n);
@@ -278,7 +283,7 @@ void strassen_discrepancy(int n, matrix a, matrix b)
     if (n <= BREAK)
     {
         int i, j;
-        double *p = a->d, *q = b->d;
+        float *p = a->d, *q = b->d;
 
         for (i = 0; i < n; i++)
         {
@@ -309,14 +314,14 @@ void strassen_discrepancy(int n, matrix a, matrix b)
 }
 
 /*
-* Are two doubles significantly different?  Since the original
+* Are two floats significantly different?  Since the original
 * numbers are between 0 and 1, we arbitrarily decide they are
 * different if their difference is at most 1e-12.  This is somewhat
 * fragile, and could be replaced by a consideration of their
 * relative difference.
 */
 
-int diff(double x, double y)
+int diff(float x, float y)
 {
     x -= y;
     if (x < 0)
@@ -343,7 +348,7 @@ void printMatrix(int n, matrix a)
 {
 
 
-    double *multiply = malloc(ndim * ndim * sizeof(double));
+    float *multiply = malloc(ndim * ndim * sizeof(float));
     strassen_get(n, a, multiply, 0, 0);
 
 
@@ -359,30 +364,22 @@ void printMatrix(int n, matrix a)
 
 }
 
-void strassenMultiplication(int n, double first[], double second[], double multiply[])
+void strassenMultiplication(int n, float first[], float second[], float multiply[])
 {
 
     printf("Running strassenMultiplication\n");
     matrix a, b, c, d;
-    a = strassen_newmatrix(n);
-    b = strassen_newmatrix(n);
-    c = strassen_newmatrix(n);
-    d = strassen_newmatrix(n);
+    a = strassen_newmatrix_block(n);
+    b = strassen_newmatrix_block(n);
+    c = strassen_newmatrix_block(n);
+    d = strassen_newmatrix_block(n);
     strassen_set(n, a, first, 0 , 0);
     strassen_set(n, b, second, 0, 0);
-
-    strassen_get(n, b, multiply, 0, 0);
-
-    // for (int i = 0; i < n; i++)
-    //     for (int j = 0; j < n; j++)
-    //         if (second[IDX(i,j)]!=multiply[IDX(i,j)])
-    //             printf("not valid in %d %d   %f %f\n",i,j,second[IDX(i,j)],multiply[IDX(i,j)] );
-
 
     struct timespec start, end;
     clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start);
 
-    strassen_naivemult(n, a, b, c);  /* strassen algorithm */
+    strassen_multiply(n, a, b, c, d);  /* strassen algorithm */
 
     clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end);
     float seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;

@@ -13,7 +13,7 @@ run: $(TARGET)
 	@echo "" >> output.log
 	@date >> output.log
 	@echo "" >> output.log
-	@bin/matrixmult 4 | tee -a output.log
+	@bin/matrixmult 2 | tee -a output.log
 
 	@echo "" >> output.log
 	@echo "" >> output.log

@@ -5,8 +5,8 @@
 
 typedef enum { false, true } bool;
 
-void parallelNaive(double first[], double second[], double multiply[]);
-void naiveMultiplication(double first[], double second[], double multiply[]);
-bool isValid(double first[], double second[], double multiplied[]);
+void parallelNaive(float first[], float second[], float multiply[]);
+void naiveMultiplication(float first[], float second[], float multiply[]);
+bool isValid(float first[], float second[], float multiplied[]);
 
-void blockedMultiply(double A[], double B[], double C[]);
+void blockedMultiply(float A[], float B[], float C[]);

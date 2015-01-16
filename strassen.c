@@ -1,4 +1,3 @@
-
 /*
 * strassen.c
 *
@@ -19,7 +18,7 @@
 *      c21 = q2+q4
 *      c22 = q1+q3-q2+q6
 *
-* where the double indices refer to submatrices in an obvious way.
+* where the float indices refer to submatrices in an obvious way.
 * Each line of multiply() that recursively calls itself computes one
 * of the q's.  Four scratch half-size matrices are required by the
 * sequence of computations here; with some rearrangement this
@@ -30,26 +29,27 @@
 * is important to do before the value of BREAK is chosen optimally.
 *
 */
+#include <xmmintrin.h>
 #include "strassen.h"
+#include "globals.h"
+
+#include <assert.h>     /* assert */
 
 #define IDX(Y, X) (n * Y + X) //rows first
+void inline M4x4_SSE(int n, float *A, float *B, float *C);
 
 /* c = a*b */
 void strassen_multiply(int n, matrix a, matrix b, matrix c, matrix d)
 {
 	if (n <= BREAK) {
-		double sum, *p = a->d, *q = b->d, *r = c->d;
-		int i, j, k;
+		float *p = a->d, *q = b->d, *r = c->d;
 
-		for(int i=0; i<n; i++)
-		    for(int j=0; j<n; j++)
-		    {
-		    	
-		      sum = 0;
-		      for(int k=0; k<n; k++)
-	                sum += p[IDX(i,k)] * q[IDX(k,j)];
-	           r[IDX(i,j)] = sum;
-	       }
+		for(int i=0; i+4<n; i+=4)
+		    for(int j=0; j+4<n; j+=4)
+		      for(int k=0; k+4<n; k+=4)
+		      {
+	                M4x4_SSE(n, &p[IDX(i,k)], &q[IDX(k,j)], &r[IDX(i,j)]);
+	           }
 	}
 	else {
 		n /= 2;
@@ -82,17 +82,44 @@ void strassen_multiply(int n, matrix a, matrix b, matrix c, matrix d)
 }
 
 
+void inline M4x4_SSE(int n, float *A, float *B, float *C) {
+    __m128 row1 = _mm_load_ps(&B[IDX(0,0)]);
+    __m128 row2 = _mm_load_ps(&B[IDX(1,0)]);
+    __m128 row3 = _mm_load_ps(&B[IDX(2,0)]);
+    __m128 row4 = _mm_load_ps(&B[IDX(3,0)]);
+    for(int i=0; i<4; i++) {
+        __m128 brod1 = _mm_set1_ps(A[IDX(i,0)]); //Set all four words with the same value 
+        __m128 brod2 = _mm_set1_ps(A[IDX(i,1)]);
+        __m128 brod3 = _mm_set1_ps(A[IDX(i,2)]);
+        __m128 brod4 = _mm_set1_ps(A[IDX(i,3)]);
+        __m128 row = _mm_add_ps(
+                    _mm_add_ps(
+                        _mm_mul_ps(brod1, row1),
+                        _mm_mul_ps(brod2, row2)),
+                    _mm_add_ps(
+                        _mm_mul_ps(brod3, row3),
+                        _mm_mul_ps(brod4, row4)));
+        __m128 res = _mm_load_ps(&C[IDX(i,0)]);
+        res = _mm_add_ps(res, row);
+        _mm_store_ps(&C[IDX(i,0)], res);
+    }
+}
+
 
 /* c = a+b */
 void inline add(int n, matrix a, matrix b, matrix c)
 {
 	if (n <= BREAK) {
-		double *p = a->d, *q = b->d, *r = c->d;
+		float *p = a->d, *q = b->d, *r = c->d;
 		int i, j;
 
-		for (i = 0; i < n; i++) {
-			for (j = 0; j < n; j++) {
-				r[IDX(i,j)] = p[IDX(i,j)] + q[IDX(i,j)];
+		for (i = 0; i < n; i+=4) {
+			for (j = 0; j < n; j+=4) {
+				//r[IDX(i,j)] = p[IDX(i,j)] + q[IDX(i,j)];
+				 __m128 row1 = _mm_load_ps(&p[IDX(i,j)]);
+				 __m128 row2 = _mm_load_ps(&q[IDX(i,j)]);
+				 __m128 res = _mm_add_ps(row1, row2);
+				 _mm_store_ps(&r[IDX(i,j)], res);
 			}
 		}
 	}
@@ -109,12 +136,16 @@ void inline add(int n, matrix a, matrix b, matrix c)
 void inline sub(int n, matrix a, matrix b, matrix c)
 {
 	if (n <= BREAK) {
-		double *p = a->d, *q = b->d, *r = c->d;
+		float *p = a->d, *q = b->d, *r = c->d;
 		int i, j;
 
-		for (i = 0; i < n; i++) {
-			for (j = 0; j < n; j++) {
-				r[IDX(i,j)] = p[IDX(i,j)] - q[IDX(i,j)];
+		for (i = 0; i < n; i+=4) {
+			for (j = 0; j < n; j+=4) {
+				//r[IDX(i,j)] = p[IDX(i,j)] - q[IDX(i,j)];
+				 __m128 row1 = _mm_load_ps(&p[IDX(i,j)]);
+				 __m128 row2 = _mm_load_ps(&q[IDX(i,j)]);
+				 __m128 res = _mm_sub_ps(row1, row2);
+				 _mm_store_ps(&r[IDX(i,j)], res);
 			}
 		}
 	}

@@ -6,19 +6,6 @@
 * Header file for strassen matrix multiplication functions.
 */
 
-/*
-* Square matrices of size <= BREAK are handled with the ``classical
-* algorithms.  The shape of almost all functions is therefore
-* something like
-*
-*	if ( n <= BREAK )
-*	    classical algorithms
-*	else
-*	    n/= 2
-*	    recursive call for 4 half-size submatrices
-*/
-
-#define BREAK 32
 
 /*
 * A matrix is defined to be a pointer to a ``union _matrix'', which
@@ -27,7 +14,7 @@
 */
 
 typedef union _matrix {
-	double *d;
+	float *d;
 	union _matrix **p;
 } *matrix;
 

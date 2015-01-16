@@ -323,7 +323,7 @@ void gen_parallelExecuteParts(threadArguments parts[], int n_parts, void* (*disp
 }
 
 
-void strassenMassiveParallel(int n, double first[], double second[], double multiply[])
+void strassenMassiveParallel(int n, float first[], float second[], float multiply[])
 {
     #define NUMA_NODES 2
 

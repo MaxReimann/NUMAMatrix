@@ -16,9 +16,9 @@ typedef struct
 {
     int startColumn;
     int lastColumn;
-    double *first;
-    double *second;
-    double *output;
+    float *first;
+    float *second;
+    float *output;
 
 } threadArguments;
 
@@ -31,10 +31,10 @@ void *multiplyPart(void *args)
     // numa_run_on_node(1);
 
 
-    double *first = a->first;
-    double *second = a->second;
-    double *output = a->output;
-    double sum;
+    float *first = a->first;
+    float *second = a->second;
+    float *output = a->output;
+    float sum;
 
     for (i = a->startColumn; i <= a->lastColumn; i++)
     {
@@ -56,10 +56,10 @@ void *multiplyPart(void *args)
 
 
 
-bool isValid(double first[], double second[], double multiplied[])
+bool isValid(float first[], float second[], float multiplied[])
 {
     int i, j, k;
-    double sum = 0;
+    float sum = 0;
     bool valid = true;
     printf("\n");
     //standard matrix multiplication (see wikipedia pseudocode)
@@ -90,7 +90,7 @@ bool isValid(double first[], double second[], double multiplied[])
     return valid;
 }
 
-void blockedMultiply(double A[], double B[], double C[])
+void blockedMultiply(float A[], float B[], float C[])
 {
   struct timespec start, end;
   clock_gettime(CLOCK_MONOTONIC, &start);
@@ -98,7 +98,7 @@ void blockedMultiply(double A[], double B[], double C[])
 
   const int NB =  40;
 
-  double sum;
+  float sum;
 
   for(int i=0; i<ndim; i+=NB)
     for(int j=0; j<ndim; j+=NB)
@@ -127,11 +127,11 @@ void blockedMultiply(double A[], double B[], double C[])
 
 
 
-void naiveMultiplication(double first[], double second[], double multiply[])
+void naiveMultiplication(float first[], float second[], float multiply[])
 {
     int i, j, k;
     struct timespec start, end;
-    double sum = 0;
+    float sum = 0;
     clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start);
 
     printf("Running naiveMultiplication\n");
@@ -153,13 +153,13 @@ void naiveMultiplication(double first[], double second[], double multiply[])
 
 
     clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end);
-    double seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
+    float seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
 
     printf("naiveMultiplication took: %f\n\n", seconds);
 }
 
 
-void parallelNaive(double first[], double second[], double multiply[])
+void parallelNaive(float first[], float second[], float multiply[])
 {
     int rc;
     pthread_t thread[NUM_THREADS];

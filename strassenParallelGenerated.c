@@ -1197,7 +1197,7 @@ void gen_parallelExecuteParts(threadArguments parts[], int n_parts, void* (*disp
 
 }
 
-void strassenMassiveParallel(int n, double first[], double second[], double multiply[])
+void strassenMassiveParallel(int n, float first[], float second[], float multiply[])
 {
     printf("Running massive parallel strassenMultiplication\n");
     matrix a, b, c;
@@ -1296,7 +1296,7 @@ void strassenMassiveParallel(int n, double first[], double second[], double mult
 
 
 
-void strassenMassiveParallelNUMA(int n, double first[], double second[], double multiply[])
+void strassenMassiveParallelNUMA(int n, float first[], float second[], float multiply[])
 {
     #define NUMA_NODES 8
 

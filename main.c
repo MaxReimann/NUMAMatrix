@@ -7,6 +7,7 @@
 #include "naiveMult.h"
 #include "strassenutil.h"
 #include "globals.h"
+#include <assert.h>     /* assert */
 
 
 #define IDX(Y, X) (ndim * Y + X) //rows first
@@ -14,13 +15,16 @@
 
 
 int indexOfParameter(int argc, char **argv, char* parameter);
+int findBreakSize();
 
 int NUM_THREADS = 49;
-int ndim = 70;
+int ndim = 8192;
+int BREAK = 32;
 
 
 int main(int argc, char **argv)
 {
+
 
     int indexThreadNum = indexOfParameter(argc, argv, "-t");
     if (indexThreadNum!=-1)
@@ -30,11 +34,13 @@ int main(int argc, char **argv)
     if (indexDimension!=-1)
         ndim = atoi(argv[indexDimension+1]);
 
+    BREAK = findBreakSize();
+    assert(BREAK!=-1);
 
     srand(1);
-    double *first = malloc(ndim * ndim * sizeof(double));
-    double *second = malloc(ndim * ndim * sizeof(double));
-    double *multiply = malloc(ndim * ndim * sizeof(double));
+    float *first = malloc(ndim * ndim * sizeof(float));
+    float *second = malloc(ndim * ndim * sizeof(float));
+    float *multiply = malloc(ndim * ndim * sizeof(float));
     int i, c, d;
     printf("NUM_THREADS: %d\n", NUM_THREADS);
     printf("ndim: %d\n", ndim);
@@ -67,12 +73,6 @@ int main(int argc, char **argv)
             blockedMultiply(first, second, multiply);
             //isValid(first, second, multiply);
 
-            // for (c = 0 ; c < ndim; c++)
-            // {
-            //     for (d = 0 ; d < ndim; d++)
-            //         multiply[IDX(c, d)] = 0;
-            // }
-            // naiveMultiplication(first, second, multiply);
         }
         else if (strcmp("2", argv[i]) == 0)
         {
@@ -121,4 +121,22 @@ int indexOfParameter(int argc, char **argv, char* parameter)
             return i;
     }
     return -1;
+}
+
+
+int findBreakSize()
+{
+    if (ndim%BREAK!=0)
+    {
+        int i_min = (BREAK-10 >= 4)? BREAK-10 : 4;
+        int i_max = (BREAK+10 < ndim)? BREAK+10 : ndim-1;
+        for (int i=i_min; i <= i_max; i++)
+        {
+            if (ndim%BREAK == 0 && BREAK%4==0) //must be divdable by 4 for vecotrization
+                return i;
+        }
+        return -1;
+    }
+    else
+        return BREAK;
 }
