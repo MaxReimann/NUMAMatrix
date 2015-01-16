@@ -145,10 +145,6 @@ void naiveMultiplication(float first[], float second[], float multiply[])
             
             multiply[IDX(i, k)] = sum;
             sum = 0;
-
-
-            // multiply[IDX(i,k)] = sum;
-            // sum = 0;
         }
 
 
