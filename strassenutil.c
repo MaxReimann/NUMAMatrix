@@ -15,9 +15,15 @@
 #include <stdlib.h>
 #include <sched.h>
 #include <numa.h>
+#include <xmmintrin.h>
+#include <mm_malloc.h>
 
 #include "strassenutil.h"
 #include "globals.h"
+
+#define IDX(Y, X) ((n * Y + X)) //rows first
+
+
 #define BILLION 1E9
 
 
@@ -27,11 +33,11 @@ void strassen_randomfill(int n, matrix a)
     if (n <= BREAK)
     {
         int i, j;
-        double **p = a->d, T = -(double)(1 << 31);
+        double *p = a->d, T = -(double)(1 << 31);
 
         for (i = 0; i < n; i++)
             for (j = 0; j < n; j++)
-                p[i][j] = rand() / T;
+                p[IDX(i,j)] = rand() / T;
     }
     else
     {
@@ -47,18 +53,20 @@ void strassen_randomfill(int n, matrix a)
 /* Fill the matrix from a flat matrix*/
 void strassen_set(int n, matrix a, double flatMatrix[], int startRow, int startColumn)
 {
-#define INDEX(Y, X) (ndim * Y + X) //rows first
+    #define INDX(Y, X) (ndim * Y + X) //rows first
     if (n <= BREAK)
     {
         int i, j;
-        double **p = a->d;
+        double *p = a->d;
 
         for (i = 0; i < n; i++)
         {
             for (j = 0; j < n; j++)
-                p[i][j] = flatMatrix[INDEX((startRow + i), (startColumn + j))];
+                p[IDX(i,j)] = flatMatrix[INDX((startRow + i), (startColumn + j))];
 
         }
+
+
 
 
 
@@ -67,6 +75,7 @@ void strassen_set(int n, matrix a, double flatMatrix[], int startRow, int startC
     else
     {
         n /= 2;
+        printf("n: %d row+n:%d, col:%d\n", n,startRow+n,startColumn);
         strassen_set(n, a11, flatMatrix, startRow, startColumn);
         strassen_set(n, a12, flatMatrix, startRow, startColumn + n);
         strassen_set(n, a21, flatMatrix, startRow + n, startColumn);
@@ -78,18 +87,18 @@ void strassen_set(int n, matrix a, double flatMatrix[], int startRow, int startC
 /* Write matrix into flat array*/
 void strassen_get(int n, matrix a, double outputMat[], int startRow, int startColumn)
 {
-#define INDEX(Y, X) (ndim * Y + X) //rows first
+    #define INDX(Y, X) (ndim * Y + X) //uses ndim not n!
     if (n <= BREAK)
     {
         int i, j;
-        double **p = a->d;
+        double *p = a->d;
 
         for (i = 0; i < n; i++)
         {
             for (j = 0; j < n; j++)
             {
-                outputMat[INDEX((startRow + i), (startColumn + j))] = p[i][j];
-                // printf("%f ", p[i][j] );
+                
+                outputMat[INDX((startRow + i), (startColumn + j))] = p[IDX(i,j)];
             }
             // printf("\n");
         }
@@ -106,13 +115,15 @@ void strassen_get(int n, matrix a, double outputMat[], int startRow, int startCo
     }
 }
 
+
+
 void strassen_naivemult(int n, matrix a, matrix b, matrix c)    /* c = a*b */
 {
     matrix scratch;
 
     if (n <= BREAK)
     {
-        double sum, **p = a->d, **q = b->d, **r = c->d;
+        double sum, *p = a->d, *q = b->d, *r = c->d;
         int i, j, k;
 
         for (i = 0; i < n; i++)
@@ -120,8 +131,8 @@ void strassen_naivemult(int n, matrix a, matrix b, matrix c)    /* c = a*b */
             for (j = 0; j < n; j++)
             {
                 for (sum = 0., k = 0; k < n; k++)
-                    sum += p[i][k] * q[k][j];
-                r[i][j] = sum;
+                    sum += p[IDX(i,k)] * q[IDX(k,j)];
+                r[IDX(i,j)] = sum;
             }
         }
     }
@@ -152,9 +163,7 @@ int sizeofMatrix(int n)
 
     if (n <= BREAK){
 
-        alloc += n * sizeof(double*);
-        for (int i = 0; i < n; i++)
-            alloc += n * sizeof(double);
+        alloc += n * n * sizeof(double);
     }
     else 
     {
@@ -186,12 +195,7 @@ matrix _strassen_newmatrix_block(int n, void  *memory, int *memPointer)
 
     if (n<= BREAK)
     {
-        a->d = (double **) my_malloc(memory, memPointer, n * sizeof(double*));
-
-        for (int i = 0; i < n; i++)
-        {
-            a->d[i] =  my_malloc(memory, memPointer, n * sizeof(double));
-        }
+        a->d = (double *) my_malloc(memory, memPointer, n * n * sizeof(double));
     }
     else
     {
@@ -210,7 +214,7 @@ matrix _strassen_newmatrix_block(int n, void  *memory, int *memPointer)
 matrix strassen_newmatrix_block(int n)
 {
     int size = sizeofMatrix(n);
-    void *memory=malloc(size);
+    void *memory=_mm_malloc(size, 16);
     //printf("memsize %d\n", size);
 
     int memPointer = 0;
@@ -240,14 +244,9 @@ matrix strassen_newmatrix(int n)
     {
         int i;
 
-        a->d = (double **)calloc(n, sizeof(double *));
+        a->d = (double *)calloc(n*n, sizeof(double));
         check(a->d != NULL,
-              "newmatrix: out of space for row pointers");
-        for (i = 0; i < n; i++)
-        {
-            a->d[i] = (double *)calloc(n, sizeof(double));
-            check(a != NULL, "newmatrix: out of space for rows");
-        }
+              "newmatrix: out of space for rows");
     }
     else
     {
@@ -279,21 +278,21 @@ void strassen_discrepancy(int n, matrix a, matrix b)
     if (n <= BREAK)
     {
         int i, j;
-        double **p = a->d, **q = b->d;
+        double *p = a->d, *q = b->d;
 
         for (i = 0; i < n; i++)
         {
             for (j = 0; j < n; j++)
             {
-                if (diff(p[i][j], q[i][j]))
+                if (diff(p[IDX(i,j)], q[IDX(i,j)]))
                 {
                     if (errors++ >= MAXERRS)
                         return;
                     else
                     {
                         printf("strassen[%d][%d] = %.12f, ",
-                               i, j, p[i][j]);
-                        printf("classical = %.12f\n", q[i][j]);
+                               i, j, p[IDX(i,j)]);
+                        printf("classical = %.12f\n", q[IDX(i,j)]);
                     }
                 }
             }
@@ -342,7 +341,7 @@ void check(int e, char *s)
 
 void printMatrix(int n, matrix a)
 {
-#define INDEX(Y, X) (ndim * Y + X) //rows first
+
 
     double *multiply = malloc(ndim * ndim * sizeof(double));
     strassen_get(n, a, multiply, 0, 0);
@@ -351,7 +350,7 @@ void printMatrix(int n, matrix a)
     for (int i = 0; i < n; i++)
     {
         for (int j = 0; j < n; j++)
-            printf("%f ", multiply[INDEX(i,j)] );
+            printf("%f ", multiply[IDX(i,j)] );
         printf("\n");
     }
 
@@ -365,18 +364,25 @@ void strassenMultiplication(int n, double first[], double second[], double multi
 
     printf("Running strassenMultiplication\n");
     matrix a, b, c, d;
-    a = strassen_newmatrix_block(n);
-    b = strassen_newmatrix_block(n);
-    c = strassen_newmatrix_block(n);
-    d = strassen_newmatrix_block(n);
+    a = strassen_newmatrix(n);
+    b = strassen_newmatrix(n);
+    c = strassen_newmatrix(n);
+    d = strassen_newmatrix(n);
     strassen_set(n, a, first, 0 , 0);
     strassen_set(n, b, second, 0, 0);
+
+    strassen_get(n, b, multiply, 0, 0);
+
+    // for (int i = 0; i < n; i++)
+    //     for (int j = 0; j < n; j++)
+    //         if (second[IDX(i,j)]!=multiply[IDX(i,j)])
+    //             printf("not valid in %d %d   %f %f\n",i,j,second[IDX(i,j)],multiply[IDX(i,j)] );
 
 
     struct timespec start, end;
     clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start);
 
-    strassen_multiply(n, a, b, c, d);  /* strassen algorithm */
+    strassen_naivemult(n, a, b, c);  /* strassen algorithm */
 
     clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end);
     float seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;

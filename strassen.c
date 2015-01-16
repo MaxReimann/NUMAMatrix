@@ -32,20 +32,23 @@
 */
 #include "strassen.h"
 
+#define IDX(Y, X) (n * Y + X) //rows first
+
 /* c = a*b */
 void strassen_multiply(int n, matrix a, matrix b, matrix c, matrix d)
 {
 	if (n <= BREAK) {
-		double sum, **p = a->d, **q = b->d, **r = c->d;
+		double sum, *p = a->d, *q = b->d, *r = c->d;
 		int i, j, k;
 
 		for(int i=0; i<n; i++)
 		    for(int j=0; j<n; j++)
 		    {
+		    	
 		      sum = 0;
 		      for(int k=0; k<n; k++)
-	                sum += p[i][k] * q[k][j];
-	           r[i][j] = sum;
+	                sum += p[IDX(i,k)] * q[IDX(k,j)];
+	           r[IDX(i,j)] = sum;
 	       }
 	}
 	else {
@@ -84,12 +87,12 @@ void strassen_multiply(int n, matrix a, matrix b, matrix c, matrix d)
 void inline add(int n, matrix a, matrix b, matrix c)
 {
 	if (n <= BREAK) {
-		double **p = a->d, **q = b->d, **r = c->d;
+		double *p = a->d, *q = b->d, *r = c->d;
 		int i, j;
 
 		for (i = 0; i < n; i++) {
 			for (j = 0; j < n; j++) {
-				r[i][j] = p[i][j] + q[i][j];
+				r[IDX(i,j)] = p[IDX(i,j)] + q[IDX(i,j)];
 			}
 		}
 	}
@@ -106,12 +109,12 @@ void inline add(int n, matrix a, matrix b, matrix c)
 void inline sub(int n, matrix a, matrix b, matrix c)
 {
 	if (n <= BREAK) {
-		double **p = a->d, **q = b->d, **r = c->d;
+		double *p = a->d, *q = b->d, *r = c->d;
 		int i, j;
 
 		for (i = 0; i < n; i++) {
 			for (j = 0; j < n; j++) {
-				r[i][j] = p[i][j] - q[i][j];
+				r[IDX(i,j)] = p[IDX(i,j)] - q[IDX(i,j)];
 			}
 		}
 	}

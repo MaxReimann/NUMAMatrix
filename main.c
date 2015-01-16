@@ -15,8 +15,8 @@
 
 int indexOfParameter(int argc, char **argv, char* parameter);
 
-const int NUM_THREADS = 49;
-const int ndim = 10000;
+int NUM_THREADS = 49;
+int ndim = 70;
 
 
 int main(int argc, char **argv)
@@ -64,14 +64,7 @@ int main(int argc, char **argv)
                     multiply[IDX(c, d)] = 0;
             }
 
-            int blockSize = 100;
-            if (i+1 < argc && strcmp(argv[i+1],"-b")==0)
-            {
-                blockSize = atoi(argv[i+2]);
-                i+=2;
-                printf("using blocksize: %d\n",blockSize);
-            }
-            blockedMultiply(first, second, multiply, blockSize);
+            blockedMultiply(first, second, multiply);
             //isValid(first, second, multiply);
 
             // for (c = 0 ; c < ndim; c++)
@@ -102,6 +95,17 @@ int main(int argc, char **argv)
             }
             //strassenMultiplication(ndim, first, second, multiply);
             strassenMassiveParallelNUMA(ndim, first, second, multiply);
+            //isValid(first, second, multiply);
+        }
+
+        else if (strcmp("4", argv[i]) == 0)
+        {
+            for (c = 0 ; c < ndim; c++)
+            {
+                for (d = 0 ; d < ndim; d++)
+                    multiply[IDX(c, d)] = 0;
+            }
+            strassenMultiplication(ndim, first, second, multiply);
             //isValid(first, second, multiply);
         }
     }

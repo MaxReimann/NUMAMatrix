@@ -27,7 +27,7 @@
 */
 
 typedef union _matrix {
-	double **d;
+	double *d;
 	union _matrix **p;
 } *matrix;
 

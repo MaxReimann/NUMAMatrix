@@ -1,8 +1,8 @@
-#include <xmmintrin.h>
 #include <stdio.h>
 #include <time.h>
 #include <time.h>
 
+#include <xmmintrin.h>
 #include <mm_malloc.h>
 
 #include <stdlib.h>
