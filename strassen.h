@@ -23,6 +23,7 @@ typedef union _matrix {
 void strassen_multiply(int, matrix, matrix, matrix, matrix);
 void add(int, matrix, matrix, matrix);
 void sub(int, matrix, matrix, matrix);
+void inline M4x4_SSE(int n, float *A, float *B, float *C);
 
 /*
 * Notational shorthand to access submatrices for matrices named

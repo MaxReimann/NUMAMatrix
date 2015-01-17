@@ -3,8 +3,6 @@
 
 #include "globals.h"
 
-typedef enum { false, true } bool;
-
 void parallelNaive(float first[], float second[], float multiply[]);
 void naiveMultiplication(float first[], float second[], float multiply[]);
 bool isValid(float first[], float second[], float multiplied[]);

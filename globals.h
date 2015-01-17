@@ -1,3 +1,4 @@
+#pragma once
 #include <stdio.h>
 #include <time.h>
 
@@ -23,3 +24,7 @@ extern int ndim;
 //NDIM must be divdable by BREAK!
 
 extern int BREAK;
+
+#define NUMA_NODES 1
+
+typedef enum { false, true } bool;

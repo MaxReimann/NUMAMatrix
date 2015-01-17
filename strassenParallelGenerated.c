@@ -198,14 +198,14 @@ c44 =  (P11 + P13 - P12 + P16) - (P21 + P23 - P22 + P26) + (P31 + P33 - P32 + P3
 */
 
 //////////////////// Strassen Parts /////////////////////
+
+//////////////////// Strassen Parts /////////////////////
 void P11(int n, matrix a, matrix b, matrix p)
 {
-add(n, _a11, p11, p11);
-add(n, p11, _a33, p11);
+add(n, _a11, _a33, p11);
 add(n, p11, _a22, p11);
 add(n, p11, _a44, p11);
-add(n, _b11, p12, p12);
-add(n, p12, _b33, p12);
+add(n, _b11, _b33, p12);
 add(n, p12, _b22, p12);
 add(n, p12, _b44, p12);
 strassen_multiply(n, p11, p12, p_res, p_temp);
@@ -214,22 +214,18 @@ strassen_multiply(n, p11, p12, p_res, p_temp);
 
 void P12(int n, matrix a, matrix b, matrix p)
 {
-add(n, _a21, p11, p11);
-add(n, p11, _a43, p11);
+add(n, _a21, _a43, p11);
 add(n, p11, _a22, p11);
 add(n, p11, _a44, p11);
-add(n, _b11, p12, p12);
-add(n, p12, _b33, p12);
+add(n, _b11, _b33, p12);
 strassen_multiply(n, p11, p12, p_res, p_temp);
 }
 
 
 void P13(int n, matrix a, matrix b, matrix p)
 {
-add(n, _a11, p11, p11);
-add(n, p11, _a33, p11);
-add(n, _b12, p12, p12);
-add(n, p12, _b34, p12);
+add(n, _a11, _a33, p11);
+add(n, _b12, _b34, p12);
 sub(n, p12, _b22, p12);
 sub(n, p12, _b44, p12);
 strassen_multiply(n, p11, p12, p_res, p_temp);
@@ -238,10 +234,8 @@ strassen_multiply(n, p11, p12, p_res, p_temp);
 
 void P14(int n, matrix a, matrix b, matrix p)
 {
-add(n, _a22, p11, p11);
-add(n, p11, _a44, p11);
-add(n, _b21, p12, p12);
-add(n, p12, _b43, p12);
+add(n, _a22, _a44, p11);
+add(n, _b21, _b43, p12);
 sub(n, p12, _b11, p12);
 sub(n, p12, _b33, p12);
 strassen_multiply(n, p11, p12, p_res, p_temp);
@@ -250,24 +244,20 @@ strassen_multiply(n, p11, p12, p_res, p_temp);
 
 void P15(int n, matrix a, matrix b, matrix p)
 {
-add(n, _a11, p11, p11);
-add(n, p11, _a33, p11);
+add(n, _a11, _a33, p11);
 add(n, p11, _a12, p11);
 add(n, p11, _a34, p11);
-add(n, _b22, p12, p12);
-add(n, p12, _b44, p12);
+add(n, _b22, _b44, p12);
 strassen_multiply(n, p11, p12, p_res, p_temp);
 }
 
 
 void P16(int n, matrix a, matrix b, matrix p)
 {
-add(n, _a21, p11, p11);
-add(n, p11, _a43, p11);
+add(n, _a21, _a43, p11);
 sub(n, p11, _a11, p11);
 sub(n, p11, _a33, p11);
-add(n, _b11, p12, p12);
-add(n, p12, _b33, p12);
+add(n, _b11, _b33, p12);
 add(n, p12, _b12, p12);
 add(n, p12, _b34, p12);
 strassen_multiply(n, p11, p12, p_res, p_temp);
@@ -276,12 +266,10 @@ strassen_multiply(n, p11, p12, p_res, p_temp);
 
 void P17(int n, matrix a, matrix b, matrix p)
 {
-add(n, _a12, p11, p11);
-add(n, p11, _a34, p11);
+add(n, _a12, _a34, p11);
 sub(n, p11, _a22, p11);
 sub(n, p11, _a44, p11);
-add(n, _b21, p12, p12);
-add(n, p12, _b43, p12);
+add(n, _b21, _b43, p12);
 add(n, p12, _b22, p12);
 add(n, p12, _b44, p12);
 strassen_multiply(n, p11, p12, p_res, p_temp);
@@ -290,20 +278,17 @@ strassen_multiply(n, p11, p12, p_res, p_temp);
 
 void P21(int n, matrix a, matrix b, matrix p)
 {
-add(n, _a31, p11, p11);
-add(n, p11, _a33, p11);
+add(n, _a31, _a33, p11);
 add(n, p11, _a42, p11);
 add(n, p11, _a44, p11);
-add(n, _b11, p12, p12);
-add(n, p12, _b22, p12);
+add(n, _b11, _b22, p12);
 strassen_multiply(n, p11, p12, p_res, p_temp);
 }
 
 
 void P22(int n, matrix a, matrix b, matrix p)
 {
-add(n, _a41, p11, p11);
-add(n, p11, _a43, p11);
+add(n, _a41, _a43, p11);
 add(n, p11, _a42, p11);
 add(n, p11, _a44, p11);
 strassen_multiply(n, p11, _b11, p_res, p_temp);
@@ -312,28 +297,23 @@ strassen_multiply(n, p11, _b11, p_res, p_temp);
 
 void P23(int n, matrix a, matrix b, matrix p)
 {
-add(n, _a31, p11, p11);
-add(n, p11, _a33, p11);
-sub(n, _b12, p12, p12);
-sub(n, p12, _b22, p12);
+add(n, _a31, _a33, p11);
+sub(n, _b12, _b22, p12);
 strassen_multiply(n, p11, p12, p_res, p_temp);
 }
 
 
 void P24(int n, matrix a, matrix b, matrix p)
 {
-add(n, _a42, p11, p11);
-add(n, p11, _a44, p11);
-sub(n, _b21, p12, p12);
-sub(n, p12, _b11, p12);
+add(n, _a42, _a44, p11);
+sub(n, _b21, _b11, p12);
 strassen_multiply(n, p11, p12, p_res, p_temp);
 }
 
 
 void P25(int n, matrix a, matrix b, matrix p)
 {
-add(n, _a31, p11, p11);
-add(n, p11, _a33, p11);
+add(n, _a31, _a33, p11);
 add(n, p11, _a32, p11);
 add(n, p11, _a34, p11);
 strassen_multiply(n, p11, _b22, p_res, p_temp);
@@ -342,34 +322,28 @@ strassen_multiply(n, p11, _b22, p_res, p_temp);
 
 void P26(int n, matrix a, matrix b, matrix p)
 {
-add(n, _a41, p11, p11);
-add(n, p11, _a43, p11);
+add(n, _a41, _a43, p11);
 sub(n, p11, _a31, p11);
 sub(n, p11, _a33, p11);
-add(n, _b11, p12, p12);
-add(n, p12, _b12, p12);
+add(n, _b11, _b12, p12);
 strassen_multiply(n, p11, p12, p_res, p_temp);
 }
 
 
 void P27(int n, matrix a, matrix b, matrix p)
 {
-add(n, _a32, p11, p11);
-add(n, p11, _a34, p11);
+add(n, _a32, _a34, p11);
 sub(n, p11, _a42, p11);
 sub(n, p11, _a44, p11);
-add(n, _b21, p12, p12);
-add(n, p12, _b22, p12);
+add(n, _b21, _b22, p12);
 strassen_multiply(n, p11, p12, p_res, p_temp);
 }
 
 
 void P31(int n, matrix a, matrix b, matrix p)
 {
-add(n, _a11, p11, p11);
-add(n, p11, _a22, p11);
-sub(n, _b13, p12, p12);
-sub(n, p12, _b33, p12);
+add(n, _a11, _a22, p11);
+sub(n, _b13, _b33, p12);
 add(n, p12, _b24, p12);
 sub(n, p12, _b44, p12);
 strassen_multiply(n, p11, p12, p_res, p_temp);
@@ -378,18 +352,15 @@ strassen_multiply(n, p11, p12, p_res, p_temp);
 
 void P32(int n, matrix a, matrix b, matrix p)
 {
-add(n, _a21, p11, p11);
-add(n, p11, _a22, p11);
-sub(n, _b13, p12, p12);
-sub(n, p12, _b33, p12);
+add(n, _a21, _a22, p11);
+sub(n, _b13, _b33, p12);
 strassen_multiply(n, p11, p12, p_res, p_temp);
 }
 
 
 void P33(int n, matrix a, matrix b, matrix p)
 {
-sub(n, _b14, p12, p12);
-sub(n, p12, _b34, p12);
+sub(n, _b14, _b34, p12);
 sub(n, p12, _b24, p12);
 add(n, p12, _b44, p12);
 strassen_multiply(n, _a11, p12, p_res, p_temp);
@@ -398,8 +369,7 @@ strassen_multiply(n, _a11, p12, p_res, p_temp);
 
 void P34(int n, matrix a, matrix b, matrix p)
 {
-sub(n, _b23, p12, p12);
-sub(n, p12, _b43, p12);
+sub(n, _b23, _b43, p12);
 sub(n, p12, _b13, p12);
 add(n, p12, _b33, p12);
 strassen_multiply(n, _a22, p12, p_res, p_temp);
@@ -408,20 +378,16 @@ strassen_multiply(n, _a22, p12, p_res, p_temp);
 
 void P35(int n, matrix a, matrix b, matrix p)
 {
-add(n, _a11, p11, p11);
-add(n, p11, _a12, p11);
-sub(n, _b24, p12, p12);
-sub(n, p12, _b44, p12);
+add(n, _a11, _a12, p11);
+sub(n, _b24, _b44, p12);
 strassen_multiply(n, p11, p12, p_res, p_temp);
 }
 
 
 void P36(int n, matrix a, matrix b, matrix p)
 {
-sub(n, _a21, p11, p11);
-sub(n, p11, _a11, p11);
-sub(n, _b13, p12, p12);
-sub(n, p12, _b33, p12);
+sub(n, _a21, _a11, p11);
+sub(n, _b13, _b33, p12);
 add(n, p12, _b14, p12);
 sub(n, p12, _b34, p12);
 strassen_multiply(n, p11, p12, p_res, p_temp);
@@ -430,10 +396,8 @@ strassen_multiply(n, p11, p12, p_res, p_temp);
 
 void P37(int n, matrix a, matrix b, matrix p)
 {
-sub(n, _a12, p11, p11);
-sub(n, p11, _a22, p11);
-sub(n, _b23, p12, p12);
-sub(n, p12, _b43, p12);
+sub(n, _a12, _a22, p11);
+sub(n, _b23, _b43, p12);
 add(n, p12, _b24, p12);
 sub(n, p12, _b44, p12);
 strassen_multiply(n, p11, p12, p_res, p_temp);
@@ -442,10 +406,8 @@ strassen_multiply(n, p11, p12, p_res, p_temp);
 
 void P41(int n, matrix a, matrix b, matrix p)
 {
-add(n, _a33, p11, p11);
-add(n, p11, _a44, p11);
-sub(n, _b31, p12, p12);
-sub(n, p12, _b11, p12);
+add(n, _a33, _a44, p11);
+sub(n, _b31, _b11, p12);
 add(n, p12, _b42, p12);
 sub(n, p12, _b22, p12);
 strassen_multiply(n, p11, p12, p_res, p_temp);
@@ -454,18 +416,15 @@ strassen_multiply(n, p11, p12, p_res, p_temp);
 
 void P42(int n, matrix a, matrix b, matrix p)
 {
-add(n, _a43, p11, p11);
-add(n, p11, _a44, p11);
-sub(n, _b31, p12, p12);
-sub(n, p12, _b11, p12);
+add(n, _a43, _a44, p11);
+sub(n, _b31, _b11, p12);
 strassen_multiply(n, p11, p12, p_res, p_temp);
 }
 
 
 void P43(int n, matrix a, matrix b, matrix p)
 {
-sub(n, _b32, p12, p12);
-sub(n, p12, _b12, p12);
+sub(n, _b32, _b12, p12);
 sub(n, p12, _b42, p12);
 add(n, p12, _b22, p12);
 strassen_multiply(n, _a33, p12, p_res, p_temp);
@@ -474,8 +433,7 @@ strassen_multiply(n, _a33, p12, p_res, p_temp);
 
 void P44(int n, matrix a, matrix b, matrix p)
 {
-sub(n, _b41, p12, p12);
-sub(n, p12, _b21, p12);
+sub(n, _b41, _b21, p12);
 sub(n, p12, _b31, p12);
 add(n, p12, _b11, p12);
 strassen_multiply(n, _a44, p12, p_res, p_temp);
@@ -484,20 +442,16 @@ strassen_multiply(n, _a44, p12, p_res, p_temp);
 
 void P45(int n, matrix a, matrix b, matrix p)
 {
-add(n, _a33, p11, p11);
-add(n, p11, _a34, p11);
-sub(n, _b42, p12, p12);
-sub(n, p12, _b22, p12);
+add(n, _a33, _a34, p11);
+sub(n, _b42, _b22, p12);
 strassen_multiply(n, p11, p12, p_res, p_temp);
 }
 
 
 void P46(int n, matrix a, matrix b, matrix p)
 {
-sub(n, _a43, p11, p11);
-sub(n, p11, _a33, p11);
-sub(n, _b31, p12, p12);
-sub(n, p12, _b11, p12);
+sub(n, _a43, _a33, p11);
+sub(n, _b31, _b11, p12);
 add(n, p12, _b32, p12);
 sub(n, p12, _b12, p12);
 strassen_multiply(n, p11, p12, p_res, p_temp);
@@ -506,10 +460,8 @@ strassen_multiply(n, p11, p12, p_res, p_temp);
 
 void P47(int n, matrix a, matrix b, matrix p)
 {
-sub(n, _a34, p11, p11);
-sub(n, p11, _a44, p11);
-sub(n, _b41, p12, p12);
-sub(n, p12, _b21, p12);
+sub(n, _a34, _a44, p11);
+sub(n, _b41, _b21, p12);
 add(n, p12, _b42, p12);
 sub(n, p12, _b22, p12);
 strassen_multiply(n, p11, p12, p_res, p_temp);
@@ -518,20 +470,17 @@ strassen_multiply(n, p11, p12, p_res, p_temp);
 
 void P51(int n, matrix a, matrix b, matrix p)
 {
-add(n, _a11, p11, p11);
-add(n, p11, _a13, p11);
+add(n, _a11, _a13, p11);
 add(n, p11, _a22, p11);
 add(n, p11, _a24, p11);
-add(n, _b33, p12, p12);
-add(n, p12, _b44, p12);
+add(n, _b33, _b44, p12);
 strassen_multiply(n, p11, p12, p_res, p_temp);
 }
 
 
 void P52(int n, matrix a, matrix b, matrix p)
 {
-add(n, _a21, p11, p11);
-add(n, p11, _a23, p11);
+add(n, _a21, _a23, p11);
 add(n, p11, _a22, p11);
 add(n, p11, _a24, p11);
 strassen_multiply(n, p11, _b33, p_res, p_temp);
@@ -540,28 +489,23 @@ strassen_multiply(n, p11, _b33, p_res, p_temp);
 
 void P53(int n, matrix a, matrix b, matrix p)
 {
-add(n, _a11, p11, p11);
-add(n, p11, _a13, p11);
-sub(n, _b34, p12, p12);
-sub(n, p12, _b44, p12);
+add(n, _a11, _a13, p11);
+sub(n, _b34, _b44, p12);
 strassen_multiply(n, p11, p12, p_res, p_temp);
 }
 
 
 void P54(int n, matrix a, matrix b, matrix p)
 {
-add(n, _a22, p11, p11);
-add(n, p11, _a24, p11);
-sub(n, _b43, p12, p12);
-sub(n, p12, _b33, p12);
+add(n, _a22, _a24, p11);
+sub(n, _b43, _b33, p12);
 strassen_multiply(n, p11, p12, p_res, p_temp);
 }
 
 
 void P55(int n, matrix a, matrix b, matrix p)
 {
-add(n, _a11, p11, p11);
-add(n, p11, _a13, p11);
+add(n, _a11, _a13, p11);
 add(n, p11, _a12, p11);
 add(n, p11, _a14, p11);
 strassen_multiply(n, p11, _b44, p_res, p_temp);
@@ -570,36 +514,30 @@ strassen_multiply(n, p11, _b44, p_res, p_temp);
 
 void P56(int n, matrix a, matrix b, matrix p)
 {
-add(n, _a21, p11, p11);
-add(n, p11, _a23, p11);
+add(n, _a21, _a23, p11);
 sub(n, p11, _a11, p11);
 sub(n, p11, _a13, p11);
-add(n, _b33, p12, p12);
-add(n, p12, _b34, p12);
+add(n, _b33, _b34, p12);
 strassen_multiply(n, p11, p12, p_res, p_temp);
 }
 
 
 void P57(int n, matrix a, matrix b, matrix p)
 {
-add(n, _a12, p11, p11);
-add(n, p11, _a14, p11);
+add(n, _a12, _a14, p11);
 sub(n, p11, _a22, p11);
 sub(n, p11, _a24, p11);
-add(n, _b43, p12, p12);
-add(n, p12, _b44, p12);
+add(n, _b43, _b44, p12);
 strassen_multiply(n, p11, p12, p_res, p_temp);
 }
 
 
 void P61(int n, matrix a, matrix b, matrix p)
 {
-sub(n, _a31, p11, p11);
-sub(n, p11, _a11, p11);
+sub(n, _a31, _a11, p11);
 add(n, p11, _a42, p11);
 sub(n, p11, _a22, p11);
-add(n, _b11, p12, p12);
-add(n, p12, _b13, p12);
+add(n, _b11, _b13, p12);
 add(n, p12, _b22, p12);
 add(n, p12, _b24, p12);
 strassen_multiply(n, p11, p12, p_res, p_temp);
@@ -608,22 +546,18 @@ strassen_multiply(n, p11, p12, p_res, p_temp);
 
 void P62(int n, matrix a, matrix b, matrix p)
 {
-sub(n, _a41, p11, p11);
-sub(n, p11, _a21, p11);
+sub(n, _a41, _a21, p11);
 add(n, p11, _a42, p11);
 sub(n, p11, _a22, p11);
-add(n, _b11, p12, p12);
-add(n, p12, _b13, p12);
+add(n, _b11, _b13, p12);
 strassen_multiply(n, p11, p12, p_res, p_temp);
 }
 
 
 void P63(int n, matrix a, matrix b, matrix p)
 {
-sub(n, _a31, p11, p11);
-sub(n, p11, _a11, p11);
-add(n, _b12, p12, p12);
-add(n, p12, _b14, p12);
+sub(n, _a31, _a11, p11);
+add(n, _b12, _b14, p12);
 sub(n, p12, _b22, p12);
 sub(n, p12, _b24, p12);
 strassen_multiply(n, p11, p12, p_res, p_temp);
@@ -632,10 +566,8 @@ strassen_multiply(n, p11, p12, p_res, p_temp);
 
 void P64(int n, matrix a, matrix b, matrix p)
 {
-sub(n, _a42, p11, p11);
-sub(n, p11, _a22, p11);
-add(n, _b21, p12, p12);
-add(n, p12, _b23, p12);
+sub(n, _a42, _a22, p11);
+add(n, _b21, _b23, p12);
 sub(n, p12, _b11, p12);
 sub(n, p12, _b13, p12);
 strassen_multiply(n, p11, p12, p_res, p_temp);
@@ -644,24 +576,20 @@ strassen_multiply(n, p11, p12, p_res, p_temp);
 
 void P65(int n, matrix a, matrix b, matrix p)
 {
-sub(n, _a31, p11, p11);
-sub(n, p11, _a11, p11);
+sub(n, _a31, _a11, p11);
 add(n, p11, _a32, p11);
 sub(n, p11, _a12, p11);
-add(n, _b22, p12, p12);
-add(n, p12, _b24, p12);
+add(n, _b22, _b24, p12);
 strassen_multiply(n, p11, p12, p_res, p_temp);
 }
 
 
 void P66(int n, matrix a, matrix b, matrix p)
 {
-sub(n, _a41, p11, p11);
-sub(n, p11, _a21, p11);
+sub(n, _a41, _a21, p11);
 sub(n, p11, _a31, p11);
 add(n, p11, _a11, p11);
-add(n, _b11, p12, p12);
-add(n, p12, _b13, p12);
+add(n, _b11, _b13, p12);
 add(n, p12, _b12, p12);
 add(n, p12, _b14, p12);
 strassen_multiply(n, p11, p12, p_res, p_temp);
@@ -670,12 +598,10 @@ strassen_multiply(n, p11, p12, p_res, p_temp);
 
 void P67(int n, matrix a, matrix b, matrix p)
 {
-sub(n, _a32, p11, p11);
-sub(n, p11, _a12, p11);
+sub(n, _a32, _a12, p11);
 sub(n, p11, _a42, p11);
 add(n, p11, _a22, p11);
-add(n, _b21, p12, p12);
-add(n, p12, _b23, p12);
+add(n, _b21, _b23, p12);
 add(n, p12, _b22, p12);
 add(n, p12, _b24, p12);
 strassen_multiply(n, p11, p12, p_res, p_temp);
@@ -684,12 +610,10 @@ strassen_multiply(n, p11, p12, p_res, p_temp);
 
 void P71(int n, matrix a, matrix b, matrix p)
 {
-sub(n, _a13, p11, p11);
-sub(n, p11, _a33, p11);
+sub(n, _a13, _a33, p11);
 add(n, p11, _a24, p11);
 sub(n, p11, _a44, p11);
-add(n, _b31, p12, p12);
-add(n, p12, _b33, p12);
+add(n, _b31, _b33, p12);
 add(n, p12, _b42, p12);
 add(n, p12, _b44, p12);
 strassen_multiply(n, p11, p12, p_res, p_temp);
@@ -698,22 +622,18 @@ strassen_multiply(n, p11, p12, p_res, p_temp);
 
 void P72(int n, matrix a, matrix b, matrix p)
 {
-sub(n, _a23, p11, p11);
-sub(n, p11, _a43, p11);
+sub(n, _a23, _a43, p11);
 add(n, p11, _a24, p11);
 sub(n, p11, _a44, p11);
-add(n, _b31, p12, p12);
-add(n, p12, _b33, p12);
+add(n, _b31, _b33, p12);
 strassen_multiply(n, p11, p12, p_res, p_temp);
 }
 
 
 void P73(int n, matrix a, matrix b, matrix p)
 {
-sub(n, _a13, p11, p11);
-sub(n, p11, _a33, p11);
-add(n, _b32, p12, p12);
-add(n, p12, _b34, p12);
+sub(n, _a13, _a33, p11);
+add(n, _b32, _b34, p12);
 sub(n, p12, _b42, p12);
 sub(n, p12, _b44, p12);
 strassen_multiply(n, p11, p12, p_res, p_temp);
@@ -722,10 +642,8 @@ strassen_multiply(n, p11, p12, p_res, p_temp);
 
 void P74(int n, matrix a, matrix b, matrix p)
 {
-sub(n, _a24, p11, p11);
-sub(n, p11, _a44, p11);
-add(n, _b41, p12, p12);
-add(n, p12, _b43, p12);
+sub(n, _a24, _a44, p11);
+add(n, _b41, _b43, p12);
 sub(n, p12, _b31, p12);
 sub(n, p12, _b33, p12);
 strassen_multiply(n, p11, p12, p_res, p_temp);
@@ -734,24 +652,20 @@ strassen_multiply(n, p11, p12, p_res, p_temp);
 
 void P75(int n, matrix a, matrix b, matrix p)
 {
-sub(n, _a13, p11, p11);
-sub(n, p11, _a33, p11);
+sub(n, _a13, _a33, p11);
 add(n, p11, _a14, p11);
 sub(n, p11, _a34, p11);
-add(n, _b42, p12, p12);
-add(n, p12, _b44, p12);
+add(n, _b42, _b44, p12);
 strassen_multiply(n, p11, p12, p_res, p_temp);
 }
 
 
 void P76(int n, matrix a, matrix b, matrix p)
 {
-sub(n, _a23, p11, p11);
-sub(n, p11, _a43, p11);
+sub(n, _a23, _a43, p11);
 sub(n, p11, _a13, p11);
 add(n, p11, _a33, p11);
-add(n, _b31, p12, p12);
-add(n, p12, _b33, p12);
+add(n, _b31, _b33, p12);
 add(n, p12, _b32, p12);
 add(n, p12, _b34, p12);
 strassen_multiply(n, p11, p12, p_res, p_temp);
@@ -760,12 +674,10 @@ strassen_multiply(n, p11, p12, p_res, p_temp);
 
 void P77(int n, matrix a, matrix b, matrix p)
 {
-sub(n, _a14, p11, p11);
-sub(n, p11, _a34, p11);
+sub(n, _a14, _a34, p11);
 sub(n, p11, _a24, p11);
 add(n, p11, _a44, p11);
-add(n, _b41, p12, p12);
-add(n, p12, _b43, p12);
+add(n, _b41, _b43, p12);
 add(n, p12, _b42, p12);
 add(n, p12, _b44, p12);
 strassen_multiply(n, p11, p12, p_res, p_temp);
@@ -774,7 +686,7 @@ strassen_multiply(n, p11, p12, p_res, p_temp);
 
 void _c11(int n, matrix P[], matrix _c11)
 {
-matrix temp = strassen_newmatrix(n);
+matrix temp = strassen_newmatrix_block(n);
 add(n, _P11, _c11, _c11);
 add(n, _c11, _P14, _c11);
 sub(n, _c11, _P15, _c11);
@@ -797,7 +709,7 @@ add(n, _c11, _P77, _c11);
 
 void _c12(int n, matrix P[], matrix _c12)
 {
-matrix temp = strassen_newmatrix(n);
+matrix temp = strassen_newmatrix_block(n);
 add(n, _P13, _P15, _c12);
 add(n, _P43, _c12, _c12);
 add(n, _c12, _P45, _c12);
@@ -832,7 +744,7 @@ add(n, _c14, _P55, _c14);
 
 void _c21(int n, matrix P[], matrix _c21)
 {
-matrix temp = strassen_newmatrix(n);
+matrix temp = strassen_newmatrix_block(n);
 add(n, _P12, _P14, _c21);
 add(n, _P42, _c21, _c21);
 add(n, _c21, _P44, _c21);
@@ -846,7 +758,7 @@ add(n, _c21, _P74, _c21);
 
 void _c22(int n, matrix P[], matrix _c22)
 {
-matrix temp = strassen_newmatrix(n);
+matrix temp = strassen_newmatrix_block(n);
 add(n, _P11, _c22, _c22);
 add(n, _c22, _P13, _c22);
 sub(n, _c22, _P12, _c22);
@@ -911,7 +823,7 @@ add(n, _c32, _P45, _c32);
 
 void _c33(int n, matrix P[], matrix _c33)
 {
-matrix temp = strassen_newmatrix(n);
+matrix temp = strassen_newmatrix_block(n);
 add(n, _P11, _c33, _c33);
 add(n, _c33, _P14, _c33);
 sub(n, _c33, _P15, _c33);
@@ -934,7 +846,7 @@ add(n, _c33, _P67, _c33);
 
 void _c34(int n, matrix P[], matrix _c34)
 {
-matrix temp = strassen_newmatrix(n);
+matrix temp = strassen_newmatrix_block(n);
 add(n, _P13, _P15, _c34);
 add(n, _P23, temp, temp);
 add(n, temp, _P25, temp);
@@ -969,7 +881,7 @@ add(n, _c42, _P46, _c42);
 
 void _c43(int n, matrix P[], matrix _c43)
 {
-matrix temp = strassen_newmatrix(n);
+matrix temp = strassen_newmatrix_block(n);
 add(n, _P12, _P14, _c43);
 add(n, _P22, temp, temp);
 add(n, temp, _P24, temp);
@@ -983,7 +895,7 @@ add(n, _c43, _P64, _c43);
 
 void _c44(int n, matrix P[], matrix _c44)
 {
-matrix temp = strassen_newmatrix(n);
+matrix temp = strassen_newmatrix_block(n);
 add(n, _P11, _c44, _c44);
 add(n, _c44, _P13, _c44);
 sub(n, _c44, _P12, _c44);
@@ -1008,7 +920,6 @@ add(n, _c44, _P66, _c44);
 
 ///////////////////// Parallelization //////////////////
 
-typedef enum { false, true } bool;
 
 typedef struct
 {
@@ -1020,7 +931,10 @@ typedef struct
     void (*c_fPtr)(int, matrix[], matrix);
     int index;
     int node;
+
     int usesNuma;
+    bool allocThread;
+    pthread_mutex_t *alloc_lock;
     matrix *P;
 
 } threadArguments;
@@ -1030,88 +944,126 @@ void (*p_fPtr[49]) (int, matrix, matrix, matrix);
 
 void (*c_fPtr[49]) (int n, matrix P[], matrix);
 
-void gen_initFunctionPointers(){
-	
-p_fPtr[0] = P11;
-p_fPtr[1] = P12;
-p_fPtr[2] = P13;
-p_fPtr[3] = P14;
-p_fPtr[4] = P15;
-p_fPtr[5] = P16;
-p_fPtr[6] = P17;
-p_fPtr[7] = P21;
-p_fPtr[8] = P22;
-p_fPtr[9] = P23;
-p_fPtr[10] = P24;
-p_fPtr[11] = P25;
-p_fPtr[12] = P26;
-p_fPtr[13] = P27;
-p_fPtr[14] = P31;
-p_fPtr[15] = P32;
-p_fPtr[16] = P33;
-p_fPtr[17] = P34;
-p_fPtr[18] = P35;
-p_fPtr[19] = P36;
-p_fPtr[20] = P37;
-p_fPtr[21] = P41;
-p_fPtr[22] = P42;
-p_fPtr[23] = P43;
-p_fPtr[24] = P44;
-p_fPtr[25] = P45;
-p_fPtr[26] = P46;
-p_fPtr[27] = P47;
-p_fPtr[28] = P51;
-p_fPtr[29] = P52;
-p_fPtr[30] = P53;
-p_fPtr[31] = P54;
-p_fPtr[32] = P55;
-p_fPtr[33] = P56;
-p_fPtr[34] = P57;
-p_fPtr[35] = P61;
-p_fPtr[36] = P62;
-p_fPtr[37] = P63;
-p_fPtr[38] = P64;
-p_fPtr[39] = P65;
-p_fPtr[40] = P66;
-p_fPtr[41] = P67;
-p_fPtr[42] = P71;
-p_fPtr[43] = P72;
-p_fPtr[44] = P73;
-p_fPtr[45] = P74;
-p_fPtr[46] = P75;
-p_fPtr[47] = P76;
-p_fPtr[48] = P77;
-c_fPtr[0] = _c11;
-c_fPtr[1] = _c12;
-c_fPtr[2] = _c13;
-c_fPtr[3] = _c14;
-c_fPtr[4] = _c21;
-c_fPtr[5] = _c22;
-c_fPtr[6] = _c23;
-c_fPtr[7] = _c24;
-c_fPtr[8] = _c31;
-c_fPtr[9] = _c32;
-c_fPtr[10] = _c33;
-c_fPtr[11] = _c34;
-c_fPtr[12] = _c41;
-c_fPtr[13] = _c42;
-c_fPtr[14] = _c43;
-c_fPtr[15] = _c44;
+matrix local_a[NUMA_NODES], local_b[NUMA_NODES];
 
+void gen_initFunctionPointers()
+{
+	p_fPtr[0] = P11;
+	p_fPtr[1] = P12;
+	p_fPtr[2] = P13;
+	p_fPtr[3] = P14;
+	p_fPtr[4] = P15;
+	p_fPtr[5] = P16;
+	p_fPtr[6] = P17;
+	p_fPtr[7] = P21;
+	p_fPtr[8] = P22;
+	p_fPtr[9] = P23;
+	p_fPtr[10] = P24;
+	p_fPtr[11] = P25;
+	p_fPtr[12] = P26;
+	p_fPtr[13] = P27;
+	p_fPtr[14] = P31;
+	p_fPtr[15] = P32;
+	p_fPtr[16] = P33;
+	p_fPtr[17] = P34;
+	p_fPtr[18] = P35;
+	p_fPtr[19] = P36;
+	p_fPtr[20] = P37;
+	p_fPtr[21] = P41;
+	p_fPtr[22] = P42;
+	p_fPtr[23] = P43;
+	p_fPtr[24] = P44;
+	p_fPtr[25] = P45;
+	p_fPtr[26] = P46;
+	p_fPtr[27] = P47;
+	p_fPtr[28] = P51;
+	p_fPtr[29] = P52;
+	p_fPtr[30] = P53;
+	p_fPtr[31] = P54;
+	p_fPtr[32] = P55;
+	p_fPtr[33] = P56;
+	p_fPtr[34] = P57;
+	p_fPtr[35] = P61;
+	p_fPtr[36] = P62;
+	p_fPtr[37] = P63;
+	p_fPtr[38] = P64;
+	p_fPtr[39] = P65;
+	p_fPtr[40] = P66;
+	p_fPtr[41] = P67;
+	p_fPtr[42] = P71;
+	p_fPtr[43] = P72;
+	p_fPtr[44] = P73;
+	p_fPtr[45] = P74;
+	p_fPtr[46] = P75;
+	p_fPtr[47] = P76;
+	p_fPtr[48] = P77;
+	c_fPtr[0] = _c11;
+	c_fPtr[1] = _c12;
+	c_fPtr[2] = _c13;
+	c_fPtr[3] = _c14;
+	c_fPtr[4] = _c21;
+	c_fPtr[5] = _c22;
+	c_fPtr[6] = _c23;
+	c_fPtr[7] = _c24;
+	c_fPtr[8] = _c31;
+	c_fPtr[9] = _c32;
+	c_fPtr[10] = _c33;
+	c_fPtr[11] = _c34;
+	c_fPtr[12] = _c41;
+	c_fPtr[13] = _c42;
+	c_fPtr[14] = _c43;
+	c_fPtr[15] = _c44;
 }
 
 
 bool gen_runningThreads[49];
 
+void threadAlloc(threadArguments *a)
+{	
+	local_a[a->node] = strassen_newmatrix_block(ndim);
+	local_b[a->node] = strassen_newmatrix_block(ndim);
+	copyMatrix(ndim, local_a[a->node] /*dest*/,a->a/*source*/);
+	copyMatrix(ndim, local_b[a->node] /*dest*/,a->b/*source*/);
+
+}
+
+
+void threadMainNUMA(threadArguments *a)
+{
+	if (a->allocThread)
+	{
+    	pthread_mutex_lock(a->alloc_lock);
+    	
+    	numa_run_on_node(a->node);
+    	threadAlloc(a);
+		
+		pthread_mutex_unlock(a->alloc_lock);
+		a->P[a->index] = strassen_newmatrix_block(a->n*2);
+	}
+	else
+	{
+		msleep(50); //sleep 50 ms to assure first thread mutex lock
+		a->P[a->index] = strassen_newmatrix_block(a->n*2);
+
+    	pthread_mutex_lock(a->alloc_lock); //wait for matrix allocation
+    	pthread_mutex_unlock(a->alloc_lock);
+		
+	}
+    a->p_fPtr(a->n, local_a[a->node], local_b[a->node], a->P[a->index]);
+}
+
+void threadMain(threadArguments *a)
+{
+	a->p_fPtr(a->n, a->a, a->b, a->output);
+}
 
 void *gen_parallelDispatcherP(void *args)
 {
     threadArguments *a = (threadArguments *) args;
-    if (a->usesNuma)
-    {
-    	numa_run_on_node(a->node);
-    }
-    a->p_fPtr(a->n, a->a, a->b, a->output);
+    if (a->usesNuma==1)
+    	threadMainNUMA(a);
+    else
+    	threadMain(a);
 
     gen_runningThreads[a->index] = false;
     pthread_exit((void *) args);
@@ -1150,6 +1102,7 @@ void gen_parallelExecuteParts(threadArguments parts[], int n_parts, void* (*disp
 
     pthread_attr_t attr;
     void *status;
+    int rc;
     pthread_t thread[n_parts];
     pthread_attr_init(&attr);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
@@ -1157,10 +1110,10 @@ void gen_parallelExecuteParts(threadArguments parts[], int n_parts, void* (*disp
 
     for (int i = 0; i < n_parts; i++)
     {
+        	rc = pthread_join(thread[gen_firstRunning()], &status);
         if (gen_numRunning() >= NUM_THREADS)
         {
             //wait until one is free
-            int rc = pthread_join(thread[gen_firstRunning()], &status);
             if (rc)
             {
                 fprintf(stderr, "%s: %s\n", "ERROR; return code from pthread_join()(1) ", strerror(rc));
@@ -1169,7 +1122,7 @@ void gen_parallelExecuteParts(threadArguments parts[], int n_parts, void* (*disp
         }
 
         parts[i].index = i;
-        int rc = pthread_create( &thread[i],  &attr, dispatcher, (void *) &parts[i]);
+        rc = pthread_create( &thread[i],  &attr, dispatcher, (void *) &parts[i]);
         if (rc)
         {
             fprintf(stderr, "Error - pthread_create() return code: %d\n", rc);
@@ -1210,8 +1163,6 @@ void strassenMassiveParallel(int n, float first[], float second[], float multipl
     clock_gettime(CLOCK_MONOTONIC, &totalStart);
 
     gen_initFunctionPointers();
-
-    int size_matrix = sizeofMatrix(n);
  
     a = strassen_newmatrix_block(n);
     b = strassen_newmatrix_block(n);
@@ -1298,11 +1249,9 @@ void strassenMassiveParallel(int n, float first[], float second[], float multipl
 
 void strassenMassiveParallelNUMA(int n, float first[], float second[], float multiply[])
 {
-    #define NUMA_NODES 8
-
-
     printf("Running massive parallel NUMA strassenMultiplication\n");
-    matrix a[NUMA_NODES], b[NUMA_NODES], c;
+    matrix a, b, c;
+    pthread_mutex_t locks[NUMA_NODES];
     threadArguments parts[49];
     threadArguments partsC[16];
     matrix P[49];
@@ -1313,26 +1262,12 @@ void strassenMassiveParallelNUMA(int n, float first[], float second[], float mul
 
     gen_initFunctionPointers();
 
-    int size_matrix = sizeofMatrix(n);
- 
-    a[0] = strassen_newmatrix_block(n);
-    b[0] = strassen_newmatrix_block(n);
+    a = strassen_newmatrix_block(n);
+    b = strassen_newmatrix_block(n);
     c = strassen_newmatrix_block(n);
 
-    strassen_set(n, a[0], first, 0 , 0);
-    strassen_set(n, b[0], second, 0, 0);
-
-    for (int i=1; i < NUMA_NODES; i++)
-    {
-    	a[i] = numa_alloc_onnode(size_matrix, i);
-    	b[i] = numa_alloc_onnode(size_matrix, i);
-
-        memcpy(a[i], a[0], size_matrix);
-        memcpy(b[i], b[0], size_matrix);
-
-        //numa_tonode_memory((void*) a[i], size_matrix, i);
-        //numa_tonode_memory((void*) b[i], size_matrix, i);
-    }
+    strassen_set(n, a, first, 0 , 0);
+    strassen_set(n, b, second, 0, 0);
 
     clock_gettime(CLOCK_MONOTONIC, &end);
     float seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
@@ -1349,23 +1284,35 @@ void strassenMassiveParallelNUMA(int n, float first[], float second[], float mul
     {
         int start = node * 49/NUMA_NODES;
         int end = (node+1) * 49/NUMA_NODES -1;
+        
+        if (pthread_mutex_init(&(locks[node]), NULL) != 0)
+	    {
+	        printf("\n mutex init failed\n");
+	        return;
+	    }
+
         for (int i = start; i<=end; i++)
         {
-            P[i] = strassen_newmatrix_block(n);
             parts[i].n = n/2;
-            parts[i].a = a[node];
-            parts[i].b = b[node];
+            parts[i].a = a;
+            parts[i].b = b;
+
             parts[i].node = node;
-            parts[i].output = P[i];
+            parts[i].P = P;
             parts[i].p_fPtr = p_fPtr[i];
             parts[i].index = i;
             parts[i].usesNuma = 1;
+            parts[i].alloc_lock = &(locks[node]);
+
+            if (i==start)
+            	parts[i].allocThread = true;
+            else
+            	parts[i].allocThread = false;
 
             gen_runningThreads[i] = false;
         }
         
     }
-
 
     //blocks until all parts are executed
     gen_parallelExecuteParts(parts, 49, gen_parallelDispatcherP);
@@ -1397,7 +1344,92 @@ void strassenMassiveParallelNUMA(int n, float first[], float second[], float mul
     //blocks until all parts are executed
     gen_parallelExecuteParts(partsC, 16, gen_parallelDispatcherC);
 
-    strassen_get(n * 2, c, multiply, 0, 0);
+
+
+    {
+    	    printf("Running massive parallel strassenMultiplication\n");
+		    threadArguments _parts[49];
+		    threadArguments _partsC[16];
+		    matrix _P[49];
+		    matrix resultsNUMA[16];
+		    for (int i=0;i<16;i++)
+		    {
+		    	resultsNUMA[i] = strassen_newmatrix_block(ndim/4);
+		    	copyMatrix(ndim/4,resultsNUMA[i],result_submatrix[i] );
+		    }
+		    strassen_set(ndim, c, multiply, 0 , 0);
+
+		        for (int i = 0; i<49; i++)
+		        {
+		            _P[i] = strassen_newmatrix_block(n);
+		            _parts[i].n = n/2;
+		            _parts[i].a = a;
+		            _parts[i].b = b;
+		            _parts[i].output = _P[i];
+		            _parts[i].p_fPtr = p_fPtr[i];
+		            _parts[i].index = i;
+		            _parts[i].usesNuma = -1;
+
+		            gen_runningThreads[i] = false;
+		        }
+
+
+		    //blocks until all parts are executed
+		    gen_parallelExecuteParts(_parts, 49, gen_parallelDispatcherP);
+
+		    matrix _result_submatrix[16]  = {C11,C12,C13,C14,
+			        C21,C22,C23,C24,
+			        C31,C32,C33,C34,
+			        C41,C42,C43,C44};
+
+
+			    for (int i=0; i<16;i++)
+			    {
+			        _partsC[i].index = i;
+			        _partsC[i].n = n/2;
+			        _partsC[i].P = _P;
+			        _partsC[i].output = _result_submatrix[i];
+			        _partsC[i].c_fPtr = c_fPtr[i];
+			        gen_runningThreads[i] = false;
+			    }
+
+
+		    // //blocks until all parts are executed
+		    gen_parallelExecuteParts(_partsC, 16, gen_parallelDispatcherC);
+
+			for (int i = 0; i<16; i++)
+		    	{
+
+    				if (strassen_same(ndim/4, resultsNUMA[i], _result_submatrix[i])==false)
+    				{
+
+		    			printf("i: %d\n",i);
+				    	printMatrix(ndim/4, resultsNUMA[i]);	
+				    	printMatrix(ndim/4, _result_submatrix[i]);	
+		    			
+		    		}
+		    	}
+		    
+
+
+
+		    // for (int i = 0; i<49; i++)
+		    //  {
+		    //  	strassen_discrepancy(_parts[i].n, P[i]->p[3], _P[i]->p[3]);
+		    //  }
+
+    }
+
+
+
+
+
+
+
+
+
+
+    strassen_get(ndim, c, multiply, 0, 0);
 
 
     clock_gettime(CLOCK_MONOTONIC, &end);

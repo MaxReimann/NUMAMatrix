@@ -67,8 +67,9 @@ bool isValid(float first[], float second[], float multiplied[])
     {
         for (k = 0; k < ndim; k++)
         {
+            sum = 0;
             for (j = 0; j < ndim; j++)
-                sum = sum + first[IDX(i, j)] * second[IDX(j, k)];
+                sum += first[IDX(i, j)] * second[IDX(j, k)];
 
             // /printf("%f ",sum);
             if (multiplied[IDX(i, k)] != sum)
@@ -79,7 +80,6 @@ bool isValid(float first[], float second[], float multiplied[])
                 break;
             }
 
-            sum = 0;
         }
         // printf("\n");
     }

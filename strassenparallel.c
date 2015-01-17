@@ -95,8 +95,6 @@ void strassen_P7 (int n, matrix A12, matrix A22,
 ///////////////////////////////////
 
 
-typedef enum { false, true } bool;
-
 typedef struct
 {
     int n;

@@ -1,3 +1,5 @@
+
+
 /*
 * strassen.c
 *
@@ -38,18 +40,27 @@
 #define IDX(Y, X) (n * Y + X) //rows first
 void inline M4x4_SSE(int n, float *A, float *B, float *C);
 
+
 /* c = a*b */
 void strassen_multiply(int n, matrix a, matrix b, matrix c, matrix d)
 {
 	if (n <= BREAK) {
 		float *p = a->d, *q = b->d, *r = c->d;
+		assert(n/4*4==n);
 
-		for(int i=0; i+4<n; i+=4)
-		    for(int j=0; j+4<n; j+=4)
-		      for(int k=0; k+4<n; k+=4)
-		      {
-	                M4x4_SSE(n, &p[IDX(i,k)], &q[IDX(k,j)], &r[IDX(i,j)]);
-	           }
+		float summut = 0;
+		for(int i=0; i<n; i+=4)
+			for(int j=0; j<n; j+=4)
+			{
+				//zero out 4x4 matrix from previous use
+				__m128 zeroed = _mm_set1_ps(0.f);
+				for (int h=0;h<4;h++)
+					_mm_store_ps(&r[IDX((i+h),j)],zeroed); 
+		    	
+		    	for(int k=0; k<n; k+=4)
+					M4x4_SSE(n, &p[IDX(i,k)], &q[IDX(k,j)], &r[IDX(i,j)]);
+		    }
+
 	}
 	else {
 		n /= 2;
@@ -80,10 +91,18 @@ void strassen_multiply(int n, matrix a, matrix b, matrix c, matrix d)
 		add(n, d21, c22, c22);
 	}
 }
+void print_m128(__m128 var,char* text)
+{
+	float row[4] __attribute__((aligned(16)));
+	assert(((size_t)&row[0])%16==0);
+	_mm_store_ps(row, var);
+    printf("%s: %f %f %f %f \n",text, row[0],row[1],row[2],row[3]);
 
+}
 
-void inline M4x4_SSE(int n, float *A, float *B, float *C) {
+void M4x4_SSE(int n, float *A, float *B, float *C) {
     __m128 row1 = _mm_load_ps(&B[IDX(0,0)]);
+
     __m128 row2 = _mm_load_ps(&B[IDX(1,0)]);
     __m128 row3 = _mm_load_ps(&B[IDX(2,0)]);
     __m128 row4 = _mm_load_ps(&B[IDX(3,0)]);
@@ -92,15 +111,21 @@ void inline M4x4_SSE(int n, float *A, float *B, float *C) {
         __m128 brod2 = _mm_set1_ps(A[IDX(i,1)]);
         __m128 brod3 = _mm_set1_ps(A[IDX(i,2)]);
         __m128 brod4 = _mm_set1_ps(A[IDX(i,3)]);
+
+
+   		
+   		__m128 prod1 = _mm_mul_ps(brod1, row1);
+   		__m128 prod2 = _mm_mul_ps(brod2, row2);
+   		__m128 prod3 = _mm_mul_ps(brod3, row3);
+   		__m128 prod4 = _mm_mul_ps(brod4, row4);
+
+
         __m128 row = _mm_add_ps(
-                    _mm_add_ps(
-                        _mm_mul_ps(brod1, row1),
-                        _mm_mul_ps(brod2, row2)),
-                    _mm_add_ps(
-                        _mm_mul_ps(brod3, row3),
-                        _mm_mul_ps(brod4, row4)));
-        __m128 res = _mm_load_ps(&C[IDX(i,0)]);
-        res = _mm_add_ps(res, row);
+                    _mm_add_ps(prod1, prod2),
+					_mm_add_ps(prod3, prod4));
+
+         __m128 res = _mm_load_ps(&C[IDX(i,0)]);
+         res = _mm_add_ps(res, row);
         _mm_store_ps(&C[IDX(i,0)], res);
     }
 }
@@ -112,10 +137,10 @@ void inline add(int n, matrix a, matrix b, matrix c)
 	if (n <= BREAK) {
 		float *p = a->d, *q = b->d, *r = c->d;
 		int i, j;
+		
 
-		for (i = 0; i < n; i+=4) {
-			for (j = 0; j < n; j+=4) {
-				//r[IDX(i,j)] = p[IDX(i,j)] + q[IDX(i,j)];
+		for (i = 0; i < n; i++) {
+			for (j = 0; j+4 <= n; j+=4) {
 				 __m128 row1 = _mm_load_ps(&p[IDX(i,j)]);
 				 __m128 row2 = _mm_load_ps(&q[IDX(i,j)]);
 				 __m128 res = _mm_add_ps(row1, row2);
@@ -139,9 +164,8 @@ void inline sub(int n, matrix a, matrix b, matrix c)
 		float *p = a->d, *q = b->d, *r = c->d;
 		int i, j;
 
-		for (i = 0; i < n; i+=4) {
-			for (j = 0; j < n; j+=4) {
-				//r[IDX(i,j)] = p[IDX(i,j)] - q[IDX(i,j)];
+		for (i = 0; i < n; i++) {
+			for (j = 0; j+4 <= n; j+=4) {
 				 __m128 row1 = _mm_load_ps(&p[IDX(i,j)]);
 				 __m128 row2 = _mm_load_ps(&q[IDX(i,j)]);
 				 __m128 res = _mm_sub_ps(row1, row2);

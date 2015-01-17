@@ -54,7 +54,7 @@ void strassen_randomfill(int n, matrix a)
 /* Fill the matrix from a flat matrix*/
 void strassen_set(int n, matrix a, float flatMatrix[], int startRow, int startColumn)
 {
-    #define INDX(Y, X) (ndim * Y + X) //rows first
+    #define INDXINP(Y, X) (ndim * Y + X) //rows first
     if (n <= BREAK)
     {
         int i, j;
@@ -65,7 +65,7 @@ void strassen_set(int n, matrix a, float flatMatrix[], int startRow, int startCo
             for (j = 0; j < n; j++)
             {
 
-                p[IDX(i,j)] = flatMatrix[INDX((startRow + i), (startColumn + j))];
+                p[IDX(i,j)] = flatMatrix[INDXINP((startRow + i), (startColumn + j))];
             }
 
         }
@@ -81,11 +81,10 @@ void strassen_set(int n, matrix a, float flatMatrix[], int startRow, int startCo
     }
 }
 
-
 /* Write matrix into flat array*/
 void strassen_get(int n, matrix a, float outputMat[], int startRow, int startColumn)
 {
-    #define INDX(Y, X) (ndim * Y + X) //uses ndim not n!
+    #define INDXOUT(Y, X) (ndim * Y + X) //uses ndim not n!
     if (n <= BREAK)
     {
         int i, j;
@@ -96,7 +95,7 @@ void strassen_get(int n, matrix a, float outputMat[], int startRow, int startCol
             for (j = 0; j < n; j++)
             {
                 
-                outputMat[INDX((startRow + i), (startColumn + j))] = p[IDX(i,j)];
+                outputMat[INDXOUT((startRow + i), (startColumn + j))] = p[IDX(i,j)];
             }
         }
     }
@@ -134,7 +133,7 @@ void strassen_naivemult(int n, matrix a, matrix b, matrix c)    /* c = a*b */
     else
     {
         n /= 2;
-        scratch = strassen_newmatrix(n);
+        scratch = strassen_newmatrix_block(n);
         strassen_naivemult(n, a11, b11, scratch);
         strassen_naivemult(n, a12, b21, c11);
         add(n, scratch, c11, c11);
@@ -159,7 +158,7 @@ int sizeofMatrix(int n)
     if (n <= BREAK){
 
         if (alloc%16!=0)
-            alloc += alloc%16;
+             alloc += alloc%16;
 
         alloc += n * n * sizeof(float);
     }
@@ -201,6 +200,8 @@ matrix _strassen_newmatrix_block(int n, void  *memory, int *memPointer)
             *memPointer += (*memPointer)%16;
         }
         a->d = (float *) my_malloc(memory, memPointer, n * n * sizeof(float));
+        for (int i = 0; i<n*n;i++)
+            a->d[i] = 0;
 
     }
     else
@@ -216,8 +217,6 @@ matrix _strassen_newmatrix_block(int n, void  *memory, int *memPointer)
     return a;
 
 }
-
-
 
 matrix strassen_newmatrix_block(int n)
 {
@@ -240,6 +239,57 @@ matrix strassen_newmatrix_block_NUMA(int n, int node)
     return _strassen_newmatrix_block(n, alignedMemory,&memPointer);
 }
 
+void copyMatrix(int n, matrix a /*dest*/, matrix b/*source*/)
+{
+    if (n<= BREAK)
+    {
+        for (int i=0;i<n*n;i++)
+        {
+            a->d[i] = b->d[i];
+        }
+    }
+    else
+    {
+        n /= 2;
+        copyMatrix(n, a11, b11);
+        copyMatrix(n, a12, b12);
+        copyMatrix(n, a21, b21);
+        copyMatrix(n, a22, b22);
+    }
+}
+
+bool strassen_same(int n, matrix a, matrix b)
+{
+    #define IND(Y, X) (n * Y + X) //uses ndim not n!
+    if (n<= BREAK)
+    {
+        for (int i=0;i<n;i++)
+        {
+            for (int j=0;j<n;j++)
+            {
+                if (diff(a->d[IND(i,j)], b->d[IND(i,j)]))
+                {
+                    printf("diff at %d %d\n",i,j);
+                    return false;
+                }
+                
+            }
+        }
+        return true;
+    }
+    else
+    {
+        n /= 2;
+        bool res = strassen_same(n, a11, b11);
+        res = res && strassen_same(n, a12, b12);
+        res = res && strassen_same(n, a21, b21);
+        return res && strassen_same(n, a22, b22);
+    }
+
+}
+
+
+
 
 
 /* return new square n by n matrix */
@@ -251,7 +301,6 @@ matrix strassen_newmatrix(int n)
 
     if (n <= BREAK)
     {
-        int i;
 
         a->d = (float *)_mm_malloc(n*n *sizeof(float),16);
     }
@@ -295,9 +344,9 @@ void strassen_discrepancy(int n, matrix a, matrix b)
                         return;
                     else
                     {
-                        printf("strassen[%d][%d] = %.12f, ",
+                        printf("a[%d][%d] = %.12f, ",
                                i, j, p[IDX(i,j)]);
-                        printf("classical = %.12f\n", q[IDX(i,j)]);
+                        printf("b = %.12f\n", q[IDX(i,j)]);
                     }
                 }
             }
@@ -326,7 +375,7 @@ int diff(float x, float y)
     x -= y;
     if (x < 0)
         x = -x;
-    return x > 1e-12;
+    return x > 1e-4;
 }
 
 /*
@@ -354,6 +403,7 @@ void printMatrix(int n, matrix a)
 
     for (int i = 0; i < n; i++)
     {
+        printf("%d: ",i);
         for (int j = 0; j < n; j++)
             printf("%f ", multiply[IDX(i,j)] );
         printf("\n");
@@ -383,7 +433,28 @@ void strassenMultiplication(int n, float first[], float second[], float multiply
 
     clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end);
     float seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
-
     strassen_get(n, c, multiply, 0, 0);
     printf("strassenMultiplication took:%f seconds\n\n", seconds);
+}
+
+
+
+int __nsleep(const struct timespec *req, struct timespec *rem)
+{
+    struct timespec temp_rem;
+    if(nanosleep(req,rem)==-1)
+        return __nsleep(rem,&temp_rem);
+    else
+        return 1;
+}
+ 
+int msleep(unsigned long milisec)
+{
+    struct timespec req={0},rem={0};
+    time_t sec=(int)(milisec/1000);
+    milisec=milisec-(sec*1000);
+    req.tv_sec=sec;
+    req.tv_nsec=milisec*1000000L;
+    __nsleep(&req,&rem);
+    return 1;
 }

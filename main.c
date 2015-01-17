@@ -18,7 +18,7 @@ int indexOfParameter(int argc, char **argv, char* parameter);
 int findBreakSize();
 
 int NUM_THREADS = 49;
-int ndim = 16384;
+int ndim = 512;
 int BREAK = 32;
 
 
@@ -71,7 +71,7 @@ int main(int argc, char **argv)
             }
 
             blockedMultiply(first, second, multiply);
-            //isValid(first, second, multiply);
+            isValid(first, second, multiply);
 
         }
         else if (strcmp("2", argv[i]) == 0)
@@ -82,8 +82,8 @@ int main(int argc, char **argv)
                     multiply[IDX(c, d)] = 0;
             }
             //strassenMultiplication(ndim, first, second, multiply);
-            strassenMassiveParallel(ndim, first, second, multiply);
-            //isValid(first, second, multiply);
+            strassenMultiplication(ndim, first, second, multiply);
+            isValid(first, second, multiply);
         }
 
         else if (strcmp("3", argv[i]) == 0)
@@ -95,7 +95,7 @@ int main(int argc, char **argv)
             }
             //strassenMultiplication(ndim, first, second, multiply);
             strassenMassiveParallelNUMA(ndim, first, second, multiply);
-            //isValid(first, second, multiply);
+            isValid(first, second, multiply);
         }
 
         else if (strcmp("4", argv[i]) == 0)
@@ -107,7 +107,7 @@ int main(int argc, char **argv)
             }
             //strassenMultiplication(ndim, first, second, multiply);
             square_sgemm(first, second, multiply);
-            //isValid(first, second, multiply);
+            isValid(first, second, multiply);
         }
     }
 
