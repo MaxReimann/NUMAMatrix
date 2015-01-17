@@ -18,11 +18,11 @@ void square_sgemm(float A[], float B[], float C[])
     int max_threads = 49;
     mkl_set_num_threads(max_threads);
 
-    printf(" Running Intel(R) MKL from 1 to %i threads \n\n", max_threads);
+    //printf(" Running Intel(R) MKL from 1 to %i threads \n\n", max_threads);
 
 
 
-    printf (" Computing matrix product using Intel(R) MKL dgemm function via CBLAS interface \n\n");
+    //printf (" Computing matrix product using Intel(R) MKL dgemm function via CBLAS interface \n\n");
     clock_gettime(CLOCK_MONOTONIC, &start);
 
     cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, 
@@ -31,6 +31,6 @@ void square_sgemm(float A[], float B[], float C[])
 
     clock_gettime(CLOCK_MONOTONIC, &end);
     seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
-    printf ("\n Computations completed in %f.\n\n", seconds);
+    printf ("Intel(R) MKL: %f.\n", seconds);
 }   
 

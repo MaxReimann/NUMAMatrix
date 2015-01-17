@@ -9,7 +9,7 @@
 #include "globals.h"
 #include <assert.h>     /* assert */
 #include "BLASmult.h"
-
+#include <mm_malloc.h>
 
 #define IDX(Y, X) (ndim * Y + X) //rows first
 
@@ -18,7 +18,7 @@ int indexOfParameter(int argc, char **argv, char* parameter);
 int findBreakSize();
 
 int NUM_THREADS = 49;
-int ndim = 8192;
+int ndim = 4096;
 int BREAK = 32;
 
 
@@ -38,12 +38,12 @@ int main(int argc, char **argv)
     assert(BREAK!=-1);
 
     srand(1);
-    float *first = malloc(ndim * ndim * sizeof(float));
-    float *second = malloc(ndim * ndim * sizeof(float));
-    float *multiply = malloc(ndim * ndim * sizeof(float));
+    float *first = _mm_malloc(ndim * ndim * sizeof(float),16);
+    float *second = _mm_malloc(ndim * ndim * sizeof(float),16);
+    float *multiply = _mm_malloc(ndim * ndim * sizeof(float),16);
     int i, c, d;
-    printf("NUM_THREADS: %d\n", NUM_THREADS);
-    printf("ndim: %d\n", ndim);
+    //printf("NUM_THREADS: %d\n", NUM_THREADS);
+    //printf("ndim: %d\n", ndim);
     setbuf(stdout, NULL);
 
 
@@ -66,8 +66,10 @@ int main(int argc, char **argv)
         }
 
 
-        if (strcmp("0", argv[i]) == 0)
-            parallelNaive(first, second, multiply);
+        if (strcmp("0", argv[i]) == 0){
+                    printf("running blocked\n");
+            blockedMultiply(first, second, multiply);
+        }
         else if (strcmp("1", argv[i]) == 0)
         {
             for (c = 0 ; c < ndim; c++)
@@ -76,8 +78,8 @@ int main(int argc, char **argv)
                     multiply[IDX(c, d)] = 0;
             }
 
-            blockedMultiply(first, second, multiply);
-            isValid(first, second, multiply);
+            strassenMultiplication(ndim, first, second, multiply);
+            //isValid(first, second, multiply);
 
         }
         else if (strcmp("2", argv[i]) == 0)

@@ -46,18 +46,37 @@ void strassen_multiply(int n, matrix a, matrix b, matrix c, matrix d)
 {
 	if (n <= BREAK) {
 		float *p = a->d, *q = b->d, *r = c->d;
-		assert(n/4*4==n);
-		for(int i=0; i<n; i+=4)
-			for(int j=0; j<n; j+=4)
-			{
-				//zero out 4x4 matrix from previous use
-				__m128 zeroed = _mm_set1_ps(0.f);
-				for (int h=0;h<4;h++)
-					_mm_store_ps(&r[IDX((i+h),j)],zeroed); 
-		    	
-		    	for(int k=0; k<n; k+=4)
-					M4x4_SSE(n, &p[IDX(i,k)], &q[IDX(k,j)], &r[IDX(i,j)]);
-		    }
+		//assert(n/4*4==n);
+
+
+  const int NB =  32;
+
+  float sum;
+
+  for(int i=0; i<n; i+=NB)
+    for(int j=0; j<n; j+=NB)
+      for(int k=0; k<n; k+=NB)
+      {
+        int i_max = (i+NB < n)? i+NB : n;
+        int j_max = (j+NB < n)? j+NB : n;
+        int k_max = (k+NB < n)? k+NB : n;
+
+
+			for(int i0=i; i0<i_max; i0+=4)
+				for(int j0=j; j0<j_max; j0+=4)
+				{
+					//zero out 4x4 matrix from previous use
+					__m128 zeroed = _mm_set1_ps(0.f);
+					for (int h=0;h<4;h++)
+						_mm_store_ps(&r[IDX((i0+h),j0)],zeroed); 
+			    	
+			    	for(int k0=k; k0<k_max; k0+=4)
+						M4x4_SSE(n, &p[IDX(i0,k0)], &q[IDX(k0,j0)], &r[IDX(i0,j0)]);
+			    }
+		}
+
+				
+
 
 	}
 	else {
@@ -98,7 +117,7 @@ void print_m128(__m128 var,char* text)
 
 }
 
-void M4x4_SSE(int n, float *A, float *B, float *C) {
+void M4x4_SSE(int n, float * restrict A, float * restrict B, float * restrict C) {
     __m128 row1 = _mm_load_ps(&B[IDX(0,0)]);
     __m128 row2 = _mm_load_ps(&B[IDX(1,0)]);
     __m128 row3 = _mm_load_ps(&B[IDX(2,0)]);

@@ -1031,7 +1031,8 @@ void threadAlloc(threadArguments *a)
 	clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end);
     float seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
 
-    printf("preperation time node %d took: %f\n\n", a->node, seconds);
+    if (a->node==0)
+    	printf("prep: %f  ", a->node, seconds);
 
 }
 
@@ -1160,7 +1161,7 @@ void gen_parallelExecuteParts(threadArguments parts[], int n_parts, void* (*disp
 
 void strassenMassiveParallel(int n, float first[], float second[], float multiply[])
 {
-    printf("Running massive parallel strassenMultiplication\n");
+    //printf("Running massive parallel strassenMultiplication\n");
     matrix a, b, c;
     threadArguments parts[49];
     threadArguments partsC[16];
@@ -1182,7 +1183,7 @@ void strassenMassiveParallel(int n, float first[], float second[], float multipl
     clock_gettime(CLOCK_MONOTONIC, &end);
     float seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
 
-    printf("preperation Time: %f\n\n", seconds);
+    printf("preprocessing : %f ", seconds);
 
 
     //struct timespec start, end;
@@ -1205,7 +1206,13 @@ void strassenMassiveParallel(int n, float first[], float second[], float multipl
 
             gen_runningThreads[i] = false;
         }
+    
+    clock_gettime(CLOCK_MONOTONIC, &end);
+    seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
 
+    printf("prep : %f ", seconds);
+
+    clock_gettime(CLOCK_MONOTONIC, &start);
 
     //blocks until all parts are executed
     gen_parallelExecuteParts(parts, 49, gen_parallelDispatcherP);
@@ -1213,7 +1220,7 @@ void strassenMassiveParallel(int n, float first[], float second[], float multipl
     clock_gettime(CLOCK_MONOTONIC, &end);
     seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
 
-    printf("multiplication took: %f\n\n", seconds);
+    printf("multiplication took: %f ", seconds);
     
     clock_gettime(CLOCK_MONOTONIC, &start);
 
@@ -1243,7 +1250,7 @@ void strassenMassiveParallel(int n, float first[], float second[], float multipl
     clock_gettime(CLOCK_MONOTONIC, &end);
     seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
 
-    printf("end part took: %f\n\n", seconds);
+    printf("end part took: %f ", seconds);
 
     clock_gettime(CLOCK_MONOTONIC, &totalEnd);
 
@@ -1257,7 +1264,7 @@ void strassenMassiveParallel(int n, float first[], float second[], float multipl
 
 void strassenMassiveParallelNUMA(int n, float first[], float second[], float multiply[])
 {
-    printf("Running massive parallel NUMA strassenMultiplication\n");
+    //printf("Running massive parallel NUMA strassenMultiplication\n");
     matrix a, b, c;
     pthread_mutex_t locks[NUMA_NODES];
     threadArguments parts[49];
@@ -1280,11 +1287,9 @@ void strassenMassiveParallelNUMA(int n, float first[], float second[], float mul
     clock_gettime(CLOCK_MONOTONIC, &end);
     float seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
 
-    printf("preperation Time: %f\n\n", seconds);
+    printf("preprocessing : %f ", seconds);
 
 
-    //struct timespec start, end;
-    clock_gettime(CLOCK_MONOTONIC, &start);
 
     n /= 2;
     
@@ -1322,13 +1327,17 @@ void strassenMassiveParallelNUMA(int n, float first[], float second[], float mul
         
     }
 
+    
+    //struct timespec start, end;
+    clock_gettime(CLOCK_MONOTONIC, &start);
+
     //blocks until all parts are executed
     gen_parallelExecuteParts(parts, 49, gen_parallelDispatcherP);
 
     clock_gettime(CLOCK_MONOTONIC, &end);
     seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
 
-    printf("multiplication took: %f\n\n", seconds);
+    printf("multiplication took: %f ", seconds);
     
     clock_gettime(CLOCK_MONOTONIC, &start);
 
@@ -1358,12 +1367,12 @@ void strassenMassiveParallelNUMA(int n, float first[], float second[], float mul
     clock_gettime(CLOCK_MONOTONIC, &end);
     seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
 
-    printf("end part took: %f\n\n", seconds);
+    printf("end part took: %f ", seconds);
 
     clock_gettime(CLOCK_MONOTONIC, &totalEnd);
 
     seconds = (totalEnd.tv_sec - totalStart.tv_sec) + 
     	(totalEnd.tv_nsec - totalStart.tv_nsec) / BILLION;
 
-    printf("total Time: %f\n\n", seconds);
+    printf("total Time: %f \n", seconds);
 }
