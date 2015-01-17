@@ -1110,9 +1110,9 @@ void gen_parallelExecuteParts(threadArguments parts[], int n_parts, void* (*disp
 
     for (int i = 0; i < n_parts; i++)
     {
-        	rc = pthread_join(thread[gen_firstRunning()], &status);
         if (gen_numRunning() >= NUM_THREADS)
         {
+        	rc = pthread_join(thread[gen_firstRunning()], &status);
             //wait until one is free
             if (rc)
             {
@@ -1343,91 +1343,6 @@ void strassenMassiveParallelNUMA(int n, float first[], float second[], float mul
 
     //blocks until all parts are executed
     gen_parallelExecuteParts(partsC, 16, gen_parallelDispatcherC);
-
-
-
-    {
-    	    printf("Running massive parallel strassenMultiplication\n");
-		    threadArguments _parts[49];
-		    threadArguments _partsC[16];
-		    matrix _P[49];
-		    matrix resultsNUMA[16];
-		    for (int i=0;i<16;i++)
-		    {
-		    	resultsNUMA[i] = strassen_newmatrix_block(ndim/4);
-		    	copyMatrix(ndim/4,resultsNUMA[i],result_submatrix[i] );
-		    }
-		    strassen_set(ndim, c, multiply, 0 , 0);
-
-		        for (int i = 0; i<49; i++)
-		        {
-		            _P[i] = strassen_newmatrix_block(n);
-		            _parts[i].n = n/2;
-		            _parts[i].a = a;
-		            _parts[i].b = b;
-		            _parts[i].output = _P[i];
-		            _parts[i].p_fPtr = p_fPtr[i];
-		            _parts[i].index = i;
-		            _parts[i].usesNuma = -1;
-
-		            gen_runningThreads[i] = false;
-		        }
-
-
-		    //blocks until all parts are executed
-		    gen_parallelExecuteParts(_parts, 49, gen_parallelDispatcherP);
-
-		    matrix _result_submatrix[16]  = {C11,C12,C13,C14,
-			        C21,C22,C23,C24,
-			        C31,C32,C33,C34,
-			        C41,C42,C43,C44};
-
-
-			    for (int i=0; i<16;i++)
-			    {
-			        _partsC[i].index = i;
-			        _partsC[i].n = n/2;
-			        _partsC[i].P = _P;
-			        _partsC[i].output = _result_submatrix[i];
-			        _partsC[i].c_fPtr = c_fPtr[i];
-			        gen_runningThreads[i] = false;
-			    }
-
-
-		    // //blocks until all parts are executed
-		    gen_parallelExecuteParts(_partsC, 16, gen_parallelDispatcherC);
-
-			for (int i = 0; i<16; i++)
-		    	{
-
-    				if (strassen_same(ndim/4, resultsNUMA[i], _result_submatrix[i])==false)
-    				{
-
-		    			printf("i: %d\n",i);
-				    	printMatrix(ndim/4, resultsNUMA[i]);	
-				    	printMatrix(ndim/4, _result_submatrix[i]);	
-		    			
-		    		}
-		    	}
-		    
-
-
-
-		    // for (int i = 0; i<49; i++)
-		    //  {
-		    //  	strassen_discrepancy(_parts[i].n, P[i]->p[3], _P[i]->p[3]);
-		    //  }
-
-    }
-
-
-
-
-
-
-
-
-
 
     strassen_get(ndim, c, multiply, 0, 0);
 

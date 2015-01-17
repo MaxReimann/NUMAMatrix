@@ -102,7 +102,6 @@ void print_m128(__m128 var,char* text)
 
 void M4x4_SSE(int n, float *A, float *B, float *C) {
     __m128 row1 = _mm_load_ps(&B[IDX(0,0)]);
-
     __m128 row2 = _mm_load_ps(&B[IDX(1,0)]);
     __m128 row3 = _mm_load_ps(&B[IDX(2,0)]);
     __m128 row4 = _mm_load_ps(&B[IDX(3,0)]);

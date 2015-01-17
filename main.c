@@ -95,7 +95,7 @@ int main(int argc, char **argv)
             }
             //strassenMultiplication(ndim, first, second, multiply);
             strassenMassiveParallelNUMA(ndim, first, second, multiply);
-            isValid(first, second, multiply);
+            //isValid(first, second, multiply);
         }
 
         else if (strcmp("4", argv[i]) == 0)
@@ -107,7 +107,7 @@ int main(int argc, char **argv)
             }
             //strassenMultiplication(ndim, first, second, multiply);
             square_sgemm(first, second, multiply);
-            isValid(first, second, multiply);
+            //isValid(first, second, multiply);
         }
     }
 
