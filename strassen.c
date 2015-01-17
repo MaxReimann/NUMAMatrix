@@ -47,8 +47,6 @@ void strassen_multiply(int n, matrix a, matrix b, matrix c, matrix d)
 	if (n <= BREAK) {
 		float *p = a->d, *q = b->d, *r = c->d;
 		assert(n/4*4==n);
-
-		float summut = 0;
 		for(int i=0; i<n; i+=4)
 			for(int j=0; j<n; j+=4)
 			{

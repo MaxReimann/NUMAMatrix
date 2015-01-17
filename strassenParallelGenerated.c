@@ -1020,10 +1020,18 @@ bool gen_runningThreads[49];
 
 void threadAlloc(threadArguments *a)
 {	
-	local_a[a->node] = strassen_newmatrix_block(ndim);
-	local_b[a->node] = strassen_newmatrix_block(ndim);
+	struct timespec start, end;
+    clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start);
+
+	local_a[a->node] = strassen_newmatrix_block_NUMA(ndim, a->node);
+	local_b[a->node] = strassen_newmatrix_block_NUMA(ndim, a->node);
 	copyMatrix(ndim, local_a[a->node] /*dest*/,a->a/*source*/);
 	copyMatrix(ndim, local_b[a->node] /*dest*/,a->b/*source*/);
+
+	clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end);
+    float seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
+
+    printf("preperation time node %d took: %f\n\n", a->node, seconds);
 
 }
 
@@ -1038,12 +1046,12 @@ void threadMainNUMA(threadArguments *a)
     	threadAlloc(a);
 		
 		pthread_mutex_unlock(a->alloc_lock);
-		a->P[a->index] = strassen_newmatrix_block(a->n*2);
+		a->P[a->index] = strassen_newmatrix_block_NUMA(a->n*2, a->node);
 	}
 	else
 	{
 		msleep(50); //sleep 50 ms to assure first thread mutex lock
-		a->P[a->index] = strassen_newmatrix_block(a->n*2);
+		a->P[a->index] = strassen_newmatrix_block_NUMA(a->n*2, a->node);
 
     	pthread_mutex_lock(a->alloc_lock); //wait for matrix allocation
     	pthread_mutex_unlock(a->alloc_lock);

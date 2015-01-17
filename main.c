@@ -18,13 +18,13 @@ int indexOfParameter(int argc, char **argv, char* parameter);
 int findBreakSize();
 
 int NUM_THREADS = 49;
-int ndim = 512;
+int ndim = 8192;
 int BREAK = 32;
 
 
 int main(int argc, char **argv)
 {
-
+    msleep(100);
 
     int indexThreadNum = indexOfParameter(argc, argv, "-t");
     if (indexThreadNum!=-1)
@@ -60,6 +60,12 @@ int main(int argc, char **argv)
     
     for (i = 1; i < argc; ++i)
     {
+        if (strcmp("#", argv[i]) == 0) //end of mode declarations
+        {
+            break;
+        }
+
+
         if (strcmp("0", argv[i]) == 0)
             parallelNaive(first, second, multiply);
         else if (strcmp("1", argv[i]) == 0)
@@ -82,8 +88,8 @@ int main(int argc, char **argv)
                     multiply[IDX(c, d)] = 0;
             }
             //strassenMultiplication(ndim, first, second, multiply);
-            strassenMultiplication(ndim, first, second, multiply);
-            isValid(first, second, multiply);
+            strassenMassiveParallel(ndim, first, second, multiply);
+            //isValid(first, second, multiply);
         }
 
         else if (strcmp("3", argv[i]) == 0)
