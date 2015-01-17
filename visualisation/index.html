@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en-us">
+
+  <head>
+    <meta charset=utf-8 />
+    <title></title>
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.min.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/2.4.1/lodash.js"></script>
+    <script type="text/javascript" src="http://cdn.craig.is/js/mousetrap/mousetrap.min.js?9d308"></script>
+    <script type="text/javascript" src="mousetrap-global-bind.min.js"></script>
+
+
+
+
+    <style type="text/css">
+      body {
+        background-color: #333333;
+        height: 98%;
+        width: 98%;
+      }
+
+      #container {
+        width: 98%;
+        height: 98%;
+        background-color: #333333;
+
+        display: -webkit-box;
+        -webkit-box-align: center;
+        -webkit-box-pack: center;
+
+        display: -moz-box;
+        -moz-box-align: center;
+        -moz-box-pack: center;
+
+        display: -ms-flexbox;
+        -ms-flex-align: center;
+        -ms-flex-pack: center;
+
+        display: box;
+        box-align: center;
+        box-pack: center;
+      }
+
+      .cell {
+        font-size: 100px;
+        color: #3399FF;
+        transition: color 0.5s ease;
+        margin-left: 50px;
+      }
+
+      .highlighted {
+        color: #D81C1C;
+      }
+
+      .nameField {
+        font-size: 70px;
+        color: #3399FF;
+        position: absolute;
+        top: 800px;
+        left: 400px;
+
+      }
+
+      .textbox {
+        font-size: 70px;
+        background: #333333;
+        border: solid 1px;
+        border-style: dashed;
+        color: #3399FF;
+      }
+
+      .success {
+        color: rgb(25, 144, 58) !important;
+      }
+
+      .failure {
+        color: rgb(201, 32, 32) !important;
+      }
+
+      .matrix {
+        margin-left: 100px;
+      }
+
+    </style>
+
+    <script type="text/javascript">
+      // started at 23.48
+
+      var matrixA, matrixB, matrixC;
+      var ndim, container;
+
+      Mousetrap.bindGlobal('enter', function() {
+        newLetter();
+        start = false;
+      });
+
+      var letter = $(".letterDiv");
+      letter.removeClass("success");
+
+
+      function fillMatrix(matrixIdentifier, values) {
+        var $matrix = $("#" + matrixIdentifier);
+        $matrix.empty();
+
+
+        var html = values.map(function (row) {
+          return "<div class='row'>" + row.map(function(cell) {
+            return "<span class='cell'>" + cell + "</span>";
+          }).join("") + "</div>";
+        }).join("");
+
+        $matrix.append(html);
+      }
+
+      var highlightQueue = [];
+
+      function InvIDX(m, y, x) {
+        return IDX(m, x, y);
+      }
+
+      function IDX(m, y, x) {
+        highlightQueue.push({m: m, y: y, x: x});
+        return ndim * y + x;
+      }
+
+      function highlightIndex(matrixStr, y, x) {
+        var cell = $("#" + matrixStr)
+          .children(":nth-child(" + (y + 1) + ")")
+          .children(":nth-child(" + (x + 1) + ")");
+
+        cell.addClass("highlighted");
+      }
+
+      function scheduleClearHighlighting() {
+        highlightQueue.push({clearHighlighting: true});
+      }
+
+      function clearHighlighting() {
+        $(".highlighted").removeClass("highlighted");
+      }
+
+      function calculateNaive() {
+        var i, j, k;
+        var sum;
+
+        matrixC = matrixC.map(function() { return 0; });
+
+        // standard matrix multiplication
+        for (i = 0; i < ndim; i++) {
+          for (k = 0; k < ndim; k++) {
+            sum = 0;
+            for (j = 0; j < ndim; j++) {
+              sum += matrixA[IDX("A", i, j)] * matrixB[IDX("B", j, k)];
+            }
+            matrixC[IDX("C", i, k)] += sum;
+            scheduleClearHighlighting();
+          }
+        }
+      }
+
+
+      function calculateTransposed() {
+        var i, j, k;
+        var sum;
+
+        matrixC = matrixC.map(function() { return 0; });
+
+        // standard matrix multiplication
+        for (i = 0; i < ndim; i++) {
+          for (k = 0; k < ndim; k++) {
+            sum = 0;
+            for (j = 0; j < ndim; j++) {
+              sum += matrixA[IDX("A", i, j)] * matrixB[InvIDX("B", j, k)];
+            }
+            matrixC[IDX("C", i, k)] += sum;
+            scheduleClearHighlighting();
+          }
+        }
+      }
+
+      function calculateSummed() {
+        var y, x, z;
+        var tmpSum;
+
+        // calculate only first summand
+        var startZ = 0;
+        var sumCount = 1;
+
+        matrixC = matrixC.map(function() { return 0; });
+
+
+        for (y = 0; y < ndim; y++) {
+          for (x = 0; x < ndim; x++) {
+            for (z = startZ; z < startZ + sumCount; z++) {
+              tmpSum = 0;
+              // compute the z-th summand for cell (y, z):
+              // = (y, z) * (z, x)
+              // since we transposed the first matrix, the index for the first matrix
+              // has to be inverted (we use InvIDX instead of IDX)
+
+              tmpSum += matrixA[IDX("A", z, y)] * matrixB[InvIDX("B", x, z)];
+            }
+            matrixC[IDX("C", y, x)] += tmpSum;
+            // __sync_add_and_fetch(&multiply[IDX(y, x)], tmpSum);
+            scheduleClearHighlighting();
+
+          }
+        }
+      }
+
+      function calculateNaiveBlocking()
+      {
+        var NB = 4;
+        var sum;
+
+        for (var i = 0; i < ndim; i += NB) {
+          for (var j = 0; j < ndim; j += NB) {
+            for (var k = 0; k < ndim; k += NB) {
+              var i_max = (i + NB < ndim) ? i + NB : ndim;
+              var j_max = (j + NB < ndim) ? j + NB : ndim;
+              var k_max = (k + NB < ndim) ? k + NB : ndim;
+              for (var i0 = i; i0 < i_max; i0++) {
+                for (var j0 = j; j0 < j_max; j0++) {
+                  sum = 0;
+                  for (var k0 = k; k0 < k_max; k0++)
+                    sum += matrixA[IDX("A", i0, k0)] * matrixB[IDX("B", k0, j0)];
+                  matrixC[IDX("C", i0, j0)] += sum;
+                  scheduleClearHighlighting();
+                }
+              }
+            }
+          }
+        }
+      }
+
+
+      function calculateNaiveBlockingTransposed()
+      {
+        var NB = 4;
+        var sum;
+
+        for (var i = 0; i < ndim; i += NB) {
+          for (var j = 0; j < ndim; j += NB) {
+            for (var k = 0; k < ndim; k += NB) {
+              var i_max = (i + NB < ndim) ? i + NB : ndim;
+              var j_max = (j + NB < ndim) ? j + NB : ndim;
+              var k_max = (k + NB < ndim) ? k + NB : ndim;
+              for (var i0 = i; i0 < i_max; i0++) {
+                for (var j0 = j; j0 < j_max; j0++) {
+                  sum = 0;
+                  for (var k0 = k; k0 < k_max; k0++)
+                    sum += matrixA[IDX("A", i0, k0)] * matrixB[InvIDX("B", k0, j0)];
+                  matrixC[IDX("C", i0, j0)] += sum;
+                  scheduleClearHighlighting();
+                }
+              }
+            }
+          }
+        }
+      }
+
+
+      setInterval(function() {
+        if (highlightQueue.length === 0) {
+          return;
+        }
+        var idxObj = highlightQueue.shift();
+
+        if (idxObj.clearHighlighting) {
+          clearHighlighting();
+          return;
+        }
+
+        highlightIndex("matrix" + idxObj.m, idxObj.y, idxObj.x);
+
+      }, 100);
+
+
+      $(document).ready(function() {
+        container = $("#container");
+        ndim = 8;
+
+        function getNestedArray() {
+          return _.values(_.groupBy(_.range(10, ndim * ndim + 10), function(el, idx) {
+            return Math.floor(idx / ndim);
+          }));
+        }
+
+        var nestedMatrixA = getNestedArray();
+        var nestedMatrixB = getNestedArray();
+        var nestedMatrixC = getNestedArray();
+        matrixA = _.flatten(nestedMatrixA);
+        matrixB = _.flatten(nestedMatrixB);
+        matrixC = _.flatten(nestedMatrixC);
+
+
+        fillMatrix("matrixA", nestedMatrixA);
+        fillMatrix("matrixB", nestedMatrixB);
+        fillMatrix("matrixC", nestedMatrixC);
+
+        // calculateSummed();
+        // calculateNaive();
+        // calculateTransposed();
+        // calculateNaiveBlocking();
+        calculateNaiveBlockingTransposed();
+      });
+
+    </script>
+
+  </head>
+
+  <body>
+    <div id="container">
+    <div id="matrixA" class="matrix"></div>
+    <div id="matrixB" class="matrix"></div>
+    <div id="matrixC" class="matrix"></div>
+    </div>
+  </body>
+
+</html>
