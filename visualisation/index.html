@@ -4,11 +4,12 @@
   <head>
     <meta charset=utf-8 />
     <title></title>
-    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.min.js"></script>
+    <script type="text/javascript" src="https://code.jquery.com/jquery-2.1.2.min.js"></script>
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/2.4.1/lodash.js"></script>
     <script type="text/javascript" src="http://cdn.craig.is/js/mousetrap/mousetrap.min.js?9d308"></script>
     <script type="text/javascript" src="mousetrap-global-bind.min.js"></script>
-
+    <!-- <script src="http://code.jquery.com/ui/1.11.2/jquery-ui.js"></script> -->
+    <script src="https://code.jquery.com/color/jquery.color-2.1.2.min.js"></script>
 
 
 
@@ -128,7 +129,21 @@
           .children(":nth-child(" + (y + 1) + ")")
           .children(":nth-child(" + (x + 1) + ")");
 
-        cell.addClass("highlighted");
+        // cell.addClass("highlighted");
+        cell.animate({
+          color: "#D81C1C",
+          duration: 400,
+          queue: false
+        });
+
+        setTimeout(function() {
+          cell.animate({
+            color: "#3399FF",
+            duration: 600,
+            queue: true
+          });
+
+        }, 700);
       }
 
       function scheduleClearHighlighting() {
