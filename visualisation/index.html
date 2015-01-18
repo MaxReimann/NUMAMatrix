@@ -43,49 +43,29 @@
       }
 
       .cell {
-        font-size: 100px;
+        font-size: 40px;
         color: #3399FF;
         transition: color 0.5s ease;
-        margin-left: 50px;
+        margin-left: 10px;
+      }
+
+      a {
+        font-size: 20px;
+        color: #3399FF;
+
       }
 
       .highlighted {
         color: #D81C1C;
       }
 
-      .nameField {
-        font-size: 70px;
-        color: #3399FF;
-        position: absolute;
-        top: 800px;
-        left: 400px;
-
-      }
-
-      .textbox {
-        font-size: 70px;
-        background: #333333;
-        border: solid 1px;
-        border-style: dashed;
-        color: #3399FF;
-      }
-
-      .success {
-        color: rgb(25, 144, 58) !important;
-      }
-
-      .failure {
-        color: rgb(201, 32, 32) !important;
-      }
-
       .matrix {
-        margin-left: 100px;
+        margin-left: 20px;
       }
 
     </style>
 
     <script type="text/javascript">
-      // started at 23.48
 
       var matrixA, matrixB, matrixC;
       var ndim, container;
@@ -129,21 +109,26 @@
           .children(":nth-child(" + (y + 1) + ")")
           .children(":nth-child(" + (x + 1) + ")");
 
-        // cell.addClass("highlighted");
-        cell.animate({
-          color: "#D81C1C",
-          duration: 400,
-          queue: false
-        });
 
-        setTimeout(function() {
-          cell.animate({
-            color: "#3399FF",
-            duration: 600,
-            queue: true
-          });
+        $("#" + matrixStr).find("highlighted").removeClass("highlighted");
 
-        }, 700);
+
+        cell.addClass("highlighted");
+        // cell.animate({
+        //   color: "#D81C1C",
+        //   duration: 50,
+        //   queue: false
+        // });
+
+        // setTimeout(function() {
+        //   cell.animate({
+        //     color: "#3399FF",
+        //     duration: 50,
+        //     queue: false
+        // });
+
+        // }, 2000);
+
       }
 
       function scheduleClearHighlighting() {
@@ -313,22 +298,45 @@
         fillMatrix("matrixB", nestedMatrixB);
         fillMatrix("matrixC", nestedMatrixC);
 
-        // calculateSummed();
-        // calculateNaive();
-        // calculateTransposed();
-        // calculateNaiveBlocking();
-        calculateNaiveBlockingTransposed();
+        switch (window.location.hash.slice(1)) {
+          case "summed":
+            calculateSummed();
+          case "naive":
+            calculateNaive();
+          case "transposed":
+            calculateTransposed();
+          case "naiveBlocking":
+            calculateNaiveBlocking();
+          case "naiveBlockingTransposed":
+            calculateNaiveBlockingTransposed();
+        }
+        $("a").click(function() {
+          setTimeout(location.reload.bind(location), 10);
+
+        })
+
       });
+
 
     </script>
 
   </head>
 
   <body>
+
+
     <div id="container">
-    <div id="matrixA" class="matrix"></div>
-    <div id="matrixB" class="matrix"></div>
-    <div id="matrixC" class="matrix"></div>
+      <div id="matrixA" class="matrix"></div>
+      <div id="matrixB" class="matrix"></div>
+      <div id="matrixC" class="matrix"></div>
+    </div>
+
+    <div align="center" style="margin-top: 100px">
+      <a href="#naive">naive</a>
+      <a href="#transposed">transposed</a>
+      <a href="#summed">summed</a>
+      <a href="#naiveBlocking">naiveBlocking</a>
+      <a href="#naiveBlockingTransposed">naiveBlockingTransposed</a>
     </div>
   </body>
 
