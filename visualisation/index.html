@@ -138,14 +138,6 @@
 
       }
 
-      function scheduleClearHighlighting() {
-        highlightQueue.push({clearHighlighting: true});
-      }
-
-      function clearHighlighting() {
-        // $(".highlighted").removeClass("highlighted");
-      }
-
       function calculateNaive() {
         var i, j, k;
         var sum;
@@ -160,7 +152,6 @@
               sum += matrixA[IDX("A", i, j)] * matrixB[IDX("B", j, k)];
             }
             matrixC[IDX("C", i, k)] += sum;
-            scheduleClearHighlighting();
           }
         }
       }
@@ -180,7 +171,6 @@
               sum += matrixA[IDX("A", i, j)] * matrixB[InvIDX("B", j, k)];
             }
             matrixC[IDX("C", i, k)] += sum;
-            scheduleClearHighlighting();
           }
         }
       }
@@ -209,7 +199,6 @@
             }
             matrixC[IDX("C", y, x)] += tmpSum;
             // __sync_add_and_fetch(&multiply[IDX(y, x)], tmpSum);
-            scheduleClearHighlighting();
 
           }
         }
@@ -232,7 +221,6 @@
                   for (var k0 = k; k0 < k_max; k0++)
                     sum += matrixA[IDX("A", i0, k0)] * matrixB[IDX("B", k0, j0)];
                   matrixC[IDX("C", i0, j0)] += sum;
-                  scheduleClearHighlighting();
                 }
               }
             }
@@ -241,8 +229,7 @@
       }
 
 
-      function calculateNaiveBlockingTransposed()
-      {
+      function calculateNaiveBlockingTransposed() {
         var NB = 4;
         var sum;
 
@@ -258,8 +245,32 @@
                   for (var k0 = k; k0 < k_max; k0++)
                     sum += matrixA[IDX("A", i0, k0)] * matrixB[InvIDX("B", k0, j0)];
                   matrixC[IDX("C", i0, j0)] += sum;
-                  scheduleClearHighlighting();
                 }
+              }
+            }
+          }
+        }
+      }
+
+      function calculateSumParallelBlocking() {
+        var NB = 4, tmpSum;
+        var startZ = 0;
+        var sumCount = 1;
+
+        for (var bigY = 0; bigY < ndim; bigY += NB) {
+          for (var bigX = 0; bigX < ndim; bigX += NB) {
+            var x_max = (bigX + NB < ndim) ? bigX + NB : ndim;
+            var y_max = (bigY + NB < ndim) ? bigY + NB : ndim;
+
+            for (y = bigY; y < y_max; y++) {
+              for (x = bigX; x < x_max; x++) {
+                tmpSum = 0;
+                for (z = startZ; z < startZ + sumCount; z++) {
+                  tmpSum +=
+                    matrixA[IDX("A", z, y)] * matrixB[InvIDX("B", x, z)];
+                }
+
+                matrixC[IDX("C", y, x)] += tmpSum;
               }
             }
           }
@@ -272,11 +283,6 @@
           return;
         }
         var idxObj = highlightQueue.shift();
-        if (idxObj.clearHighlighting) {
-          clearHighlighting();
-          return;
-        }
-
         highlightIndex("matrix" + idxObj.m, idxObj.y, idxObj.x);
 
       }, 100);
@@ -320,6 +326,9 @@
           case "naiveBlockingTransposed":
             calculateNaiveBlockingTransposed();
             break;
+          case "summedBlockedTransposed":
+            calculateSumParallelBlocking();
+            break;
         }
         $("a").click(function() {
           setTimeout(location.reload.bind(location), 10);
@@ -343,11 +352,12 @@
     </div>
 
     <div align="center" style="margin-top: 100px">
-      <a href="#naive">naive</a>
-      <a href="#transposed">transposed</a>
-      <a href="#summed">summed</a>
-      <a href="#naiveBlocking">naiveBlocking</a>
-      <a href="#naiveBlockingTransposed">naiveBlockingTransposed</a>
+      <a href="#naive">Naive</a>
+      <a href="#transposed">Naive transposed</a>
+      <a href="#naiveBlocking">Naive blocked</a>
+      <a href="#naiveBlockingTransposed">Naive blocked transposed</a>
+      <a href="#summed">Summed</a>
+      <a href="#summedBlockedTransposed">Summed blocked transposed</a>
     </div>
   </body>
 
