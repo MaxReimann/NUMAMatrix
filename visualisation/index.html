@@ -45,7 +45,7 @@
       .cell {
         font-size: 40px;
         color: #3399FF;
-        transition: color 0.5s ease;
+        transition: color 2s ease;
         margin-left: 10px;
       }
 
@@ -57,6 +57,7 @@
 
       .highlighted {
         color: #D81C1C;
+        transition: color 0.5s ease;
       }
 
       .matrix {
@@ -110,10 +111,16 @@
           .children(":nth-child(" + (x + 1) + ")");
 
 
-        $("#" + matrixStr).find("highlighted").removeClass("highlighted");
+        // $("#" + matrixStr).find("highlighted").removeClass("highlighted");
 
 
         cell.addClass("highlighted");
+
+
+        setTimeout(function() {
+          cell.removeClass("highlighted");
+        }, 500);
+
         // cell.animate({
         //   color: "#D81C1C",
         //   duration: 50,
@@ -136,7 +143,7 @@
       }
 
       function clearHighlighting() {
-        $(".highlighted").removeClass("highlighted");
+        // $(".highlighted").removeClass("highlighted");
       }
 
       function calculateNaive() {
