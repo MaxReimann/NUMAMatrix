@@ -87,7 +87,7 @@
 
         var html = values.map(function (row) {
           return "<div class='row'>" + row.map(function(cell) {
-            return "<span class='cell'>" + cell + "</span>";
+            return "<span class='cell'>" + "X" + "</span>";
           }).join("") + "</div>";
         }).join("");
 
@@ -272,7 +272,6 @@
           return;
         }
         var idxObj = highlightQueue.shift();
-
         if (idxObj.clearHighlighting) {
           clearHighlighting();
           return;
@@ -308,14 +307,19 @@
         switch (window.location.hash.slice(1)) {
           case "summed":
             calculateSummed();
+            break;
           case "naive":
             calculateNaive();
+            break;
           case "transposed":
             calculateTransposed();
+            break;
           case "naiveBlocking":
             calculateNaiveBlocking();
+            break;
           case "naiveBlockingTransposed":
             calculateNaiveBlockingTransposed();
+            break;
         }
         $("a").click(function() {
           setTimeout(location.reload.bind(location), 10);
