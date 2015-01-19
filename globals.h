@@ -27,4 +27,6 @@ extern int BREAK;
 
 #define NUMA_NODES 1
 
+//#define OPTIMIZED
+
 typedef enum { false, true } bool;

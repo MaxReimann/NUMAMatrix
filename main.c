@@ -18,7 +18,7 @@ int indexOfParameter(int argc, char **argv, char* parameter);
 int findBreakSize();
 
 int NUM_THREADS = 49;
-int ndim = 4096;
+int ndim = 1024;
 int BREAK = 32;
 
 
@@ -67,8 +67,10 @@ int main(int argc, char **argv)
 
 
         if (strcmp("0", argv[i]) == 0){
-                    printf("running blocked\n");
-            blockedMultiply(first, second, multiply);
+            //naiveMultiplication(first,second,multiply);
+              //      printf("running blocked\n");
+            //blockedMultiply(first, second, multiply);
+            parallelNaive(first,second,multiply);
         }
         else if (strcmp("1", argv[i]) == 0)
         {
