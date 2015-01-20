@@ -18,9 +18,10 @@ int indexOfParameter(int argc, char **argv, char* parameter);
 int findBreakSize();
 
 int NUM_THREADS = 49;
-int ndim = 1024;
+int ndim = 4096;
 int BREAK = 32;
 
+int blockSize = 40;
 
 int main(int argc, char **argv)
 {
@@ -33,6 +34,10 @@ int main(int argc, char **argv)
     int indexDimension = indexOfParameter(argc, argv, "-n");
     if (indexDimension!=-1)
         ndim = atoi(argv[indexDimension+1]);
+
+    int indexBlockSize= indexOfParameter(argc, argv, "-b");
+    if (indexBlockSize!=-1)
+        blockSize = atoi(argv[indexBlockSize+1]);
 
     BREAK = findBreakSize();
     assert(BREAK!=-1);
@@ -70,7 +75,7 @@ int main(int argc, char **argv)
             //naiveMultiplication(first,second,multiply);
               //      printf("running blocked\n");
             //blockedMultiply(first, second, multiply);
-            parallelNaive(first,second,multiply);
+            parallelNaiveSSE(first,second,multiply);
         }
         else if (strcmp("1", argv[i]) == 0)
         {
@@ -80,7 +85,8 @@ int main(int argc, char **argv)
                     multiply[IDX(c, d)] = 0;
             }
 
-            strassenMultiplication(ndim, first, second, multiply);
+            parallelNaiveBlocked(first, second, multiply);
+            //naiveMultiplication(first, second, multiply);
             //isValid(first, second, multiply);
 
         }
@@ -92,7 +98,7 @@ int main(int argc, char **argv)
                     multiply[IDX(c, d)] = 0;
             }
             //strassenMultiplication(ndim, first, second, multiply);
-            strassenMassiveParallel(ndim, first, second, multiply);
+            //blockedSSEMultiply( first, second, multiply, blockSize);
             //isValid(first, second, multiply);
         }
 

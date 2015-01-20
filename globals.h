@@ -25,8 +25,10 @@ extern int ndim;
 
 extern int BREAK;
 
-#define NUMA_NODES 1
+#define NUMA_NODES 8
 
 //#define OPTIMIZED
+
+#define DISTRIBUTE_INCOMING
 
 typedef enum { false, true } bool;

@@ -1023,10 +1023,15 @@ void threadAlloc(threadArguments *a)
 	struct timespec start, end;
     clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start);
 
+#ifndef DISTRIBUTE_INCOMING
 	local_a[a->node] = strassen_newmatrix_block_NUMA(ndim, a->node);
 	local_b[a->node] = strassen_newmatrix_block_NUMA(ndim, a->node);
 	copyMatrix(ndim, local_a[a->node] /*dest*/,a->a/*source*/);
 	copyMatrix(ndim, local_b[a->node] /*dest*/,a->b/*source*/);
+#else
+	local_a[a->node] = a->a;
+	local_b[a->node] = a->b;
+#endif
 
 	clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end);
     float seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
@@ -1277,9 +1282,16 @@ void strassenMassiveParallelNUMA(int n, float first[], float second[], float mul
 
     gen_initFunctionPointers();
 
+#ifndef DISTRIBUTE_INCOMING
     a = strassen_newmatrix_block(n);
     b = strassen_newmatrix_block(n);
     c = strassen_newmatrix_block(n);
+#else
+    a = strassen_newmatrix_block_NUMA_distr(n);
+    b = strassen_newmatrix_block_NUMA_distr(n);
+    c = strassen_newmatrix_block_NUMA_distr(n);
+#endif
+
 
     strassen_set(n, a, first, 0 , 0);
     strassen_set(n, b, second, 0, 0);

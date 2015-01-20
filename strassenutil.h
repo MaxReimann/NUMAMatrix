@@ -14,6 +14,7 @@ void strassenMassiveParallelNUMA(int n, float first[], float second[], float mul
 matrix strassen_newmatrix(int);		/* allocate storage */
 matrix strassen_newmatrix_block(int n);
 matrix strassen_newmatrix_block_NUMA(int n, int node);
+matrix strassen_newmatrix_block_NUMA_distr(int n);
 
 void copyMatrix(int n, matrix a /*dest*/, matrix b/*source*/);
 bool strassen_same(int n, matrix a, matrix b);

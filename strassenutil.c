@@ -227,6 +227,24 @@ matrix strassen_newmatrix_block(int n)
     return _strassen_newmatrix_block(n, memory,&memPointer);
 }
 
+matrix strassen_newmatrix_block_NUMA_distr(int n)
+{
+
+    matrix a;
+    a = (matrix)malloc(sizeof(*a));
+
+    n /= 2;
+    a->p = (matrix *)calloc(4, sizeof(matrix));
+
+    a11 = strassen_newmatrix_block_NUMA(n, 0);
+    a12 = strassen_newmatrix_block_NUMA(n, 1);
+    a21 = strassen_newmatrix_block_NUMA(n, 2);
+    a22 = strassen_newmatrix_block_NUMA(n, 3);
+
+    return a;
+}
+
+
 matrix strassen_newmatrix_block_NUMA(int n, int node)
 {
     int size = sizeofMatrix(n);
@@ -417,7 +435,6 @@ void printMatrix(int n, matrix a)
 void strassenMultiplication(int n, float first[], float second[], float multiply[])
 {
 
-    printf("Running strassenMultiplication\n");
     matrix a, b, c, d;
     a = strassen_newmatrix_block(n);
     b = strassen_newmatrix_block(n);
@@ -434,7 +451,7 @@ void strassenMultiplication(int n, float first[], float second[], float multiply
     clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end);
     float seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
     strassen_get(n, c, multiply, 0, 0);
-    printf("strassenMultiplication took:%f seconds\n\n", seconds);
+    printf("SSE strassenMultiplication took:%f seconds\n\n", seconds);
 }
 
 

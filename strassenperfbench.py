@@ -23,40 +23,19 @@ def change_node_define(num):
 	subprocess.call("make")
 
 
-ndims = [2**x for x in range(8,16)]
+ndims = [2**x for x in range(6,14)]
 #numa_nodes = [1,2,4,6]
 log = ""
 for ndim in ndims:
-	log += "ndim: "+ str(ndim)
+	log += "ndim: "+ str(ndim) + "\n"
 	# log += "0: "
-	# commandline_args = shlex.split("bin/matrixmult 0 -n %s"%ndim)
-	# proc = subprocess.Popen(commandline_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-	# out, err = proc.communicate()
-	# print out
-	# log += out
 
-	commandline_args = shlex.split("bin/matrixmult 2 -n %s"%ndim)
-	proc = subprocess.Popen(commandline_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-	out, err = proc.communicate()
-	print out
-	log += out
+	for i in [0,1,3,4]:
+		commandline_args = shlex.split("bin/matrixmult %s # -n %s"%(i,ndim))
+		proc = subprocess.Popen(commandline_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+		out, err = proc.communicate()
+		print out
+		log += out
 
-
-	# for nodes in numa_nodes :
-	# 	log += str(nodes)+": " 
-	# 	change_node_define(nodes)
-
-	# 	commandline_args = shlex.split("bin/matrixmult 3 -n %s"%ndim)
-	# 	proc = subprocess.Popen(commandline_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-	# 	out, err = proc.communicate()
-	# 	print out
-	# 	log += out
-
-	# commandline_args = shlex.split("bin/matrixmult 4 -n %s"%ndim)
-	# proc = subprocess.Popen(commandline_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-	# out, err = proc.communicate()
-	# print out
-	# log += out
-
-with open("result_parallel_strassen.txt","w") as f:
+with open("result_fastest.txt","w") as f:
 	f.write(log)
