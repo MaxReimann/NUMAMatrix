@@ -13,8 +13,9 @@ run: $(TARGET)
 	@echo "" >> output.log
 	@date >> output.log
 	@echo "" >> output.log
-	@bin/matrixmult 0 1 2 | tee -a output.log
-
+	@bin/matrixmult 0 | tee -a output.log
+# parallelSum 3
+# parallelNaive 0
 	@echo "" >> output.log
 	@echo "" >> output.log
 

@@ -17,3 +17,7 @@ int NUM_NODES;
 int ndim;
 int halfMatrixCellCount;
 size_t halfMatrixSize;
+
+typedef enum { false, true } bool;
+
+bool useBlocking;
