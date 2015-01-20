@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "naiveMult.h"
-#include "strassenutil.h"
+// #include "strassenutil.h"
 
 #include <stdint.h>
 #include <sched.h>
@@ -30,7 +30,7 @@ typedef struct {
 
 int main(int argc, char **argv)
 {
-	NUM_THREADS = 96;
+	NUM_THREADS = 24;
 	ndim = 4096;
 	NUM_NODES = 2;
 	useBlocking = false;
@@ -155,7 +155,7 @@ int main(int argc, char **argv)
 			  }
 			}
     	printf("strassenMultiplication\n");
-			strassenMultiplication(ndim, first, second, multiply);
+			// strassenMultiplication(ndim, first, second, multiply);
 		}
     if (strcmp("3", argv[i]) == 0) {
   		for (c = 0 ; c < ndim; c++) {
@@ -195,79 +195,6 @@ void* penetrateMemory(void *args) {
 
 	memcpy(buffers[a->to], buffers[a->from], bufferSize);
 	return NULL;
-}
-
-void testLocalVsRemote() {
-	struct timespec start, end;
-	float seconds;
-
-	int bufferCount = 10 * 1E9;
-	size_t bufferSize = bufferCount * sizeof(int);
-	int* buffer = (int*) numa_alloc_onnode(bufferSize, 0);
-
-	// local
-
-	numa_run_on_node(0);
-
-	clock_gettime(CLOCK_MONOTONIC, &start);
-	for (int i = 0; i < bufferCount; ++i) {
-		buffer[i] += 12345;
-		buffer[i] -= 12345;
-	}
-
-	clock_gettime(CLOCK_MONOTONIC, &end);
-	seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
-
-	printf("local took: %f\n", seconds);
-
-	// remote
-
-	numa_run_on_node(1);
-
-	clock_gettime(CLOCK_MONOTONIC, &start);
-	for (int i = 0; i < bufferCount; ++i) {
-		buffer[i] += 12345;
-		buffer[i] -= 12345;
-	}
-
-	clock_gettime(CLOCK_MONOTONIC, &end);
-	seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
-
-	printf("remote took: %f\n", seconds);
-
-}
-
-void runAdditionMultiplicationBenchmark() {
-	struct timespec start, end;
-	clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start);
-
-	// addition
-
-	double result = 0;
-	int iterations = 100000;
-
-	for (int i = 0; i < iterations; ++i) {
-		result = (rand() % 100) + (rand() % 100)
-	}
-
-	clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end);
-	float seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
-
-	printf("addition took: %f\n", seconds);
-
-	// multiplication
-
-	clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start);
-	double result = 0;
-
-	for (int i = 0; i < iterations; ++i) {
-		result = (rand() % 100) * (rand() % 100)
-	}
-
-	clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end);
-	seconds = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / BILLION;
-
-	printf("multiplication took: %f\n", seconds);
 }
 
 

@@ -31,7 +31,7 @@
 
 
 #define useNumaAdvantages true
-#define pinThreads false
+#define pinThreads true
 #define forceSingleNode false
 
 typedef struct {
