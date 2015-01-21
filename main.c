@@ -38,7 +38,6 @@ int main(int argc, char **argv)
 	halfMatrixCellCount = (ndim * ndim / 2);
 	halfMatrixSize = halfMatrixCellCount * sizeof(double);
 
-	// srand(time(NULL));
 	srand(0);
 
 	printf("NUM_THREADS: %d\n", NUM_THREADS);
@@ -54,13 +53,9 @@ int main(int argc, char **argv)
 	numa_node_size(1, &freep);
 	printf("freep in GB on 1: %f\n", (float) freep / 1E9);
 
-	// startThreadedMemoryPenetration();
-
 	double *first;
 	double *second;
 	double *multiply;
-
-	// return;
 
 	first = (double *) numa_alloc_onnode(ndim * ndim * sizeof(double), destnode);
 	second = (double *) numa_alloc_onnode(ndim * ndim * sizeof(double), destnode);
@@ -70,63 +65,11 @@ int main(int argc, char **argv)
 
 	// numa_run_on_node(0);
 
-	// ndim = 2048;
-
-	// for (int power = 9; power <= 9; power++) {
-	// 	for (int blocking = 0; blocking <= 0; blocking++) {
-	// 		useBlocking = blocking;
-	// 		halfMatrixCellCount = (ndim * ndim / 2);
-	// 		halfMatrixSize = halfMatrixCellCount * sizeof(double);
-
-
-	// 		first = (double *) numa_alloc_onnode(ndim * ndim * sizeof(double), destnode);
-	// 		second = (double *) numa_alloc_onnode(ndim * ndim * sizeof(double), destnode);
-	// 		multiply = (double *) numa_alloc_onnode(ndim * ndim * sizeof(double), destnode);
-	// 		assert(first != NULL);
-	// 		assert(second != NULL);
-	// 		assert(multiply != NULL);
-
-	// 		printf("######################################\n");
-	// 		printf("######################################\n");
-	// 		printf("######################################\n");
-	// 		printf("blocking %d\n", blocking);
-	// 		printf("ndim: %d\n", ndim);
-
-	// 	  for (d = 0 ; d < ndim; d++) {
-	// 		  first[IDX(c,d)] = rand() % 100; second[IDX(c,d)] = rand() % 100; multiply[IDX(c,d)] = 0;
-	// 	  }
-	// 	  naiveMultiplication(first, second, multiply);
-
-	// 	  // for (d = 0 ; d < ndim; d++) {
-	// 		 //  first[IDX(c,d)] = rand() % 100; second[IDX(c,d)] = rand() % 100; multiply[IDX(c,d)] = 0;
-	// 	  // }
-	// 	  // parallelNaive(first, second, multiply);
-
-	// 	 //  for (c = 0 ; c < ndim; c++) {
-	// 		//   for (d = 0 ; d < ndim; d++) {
-	// 		// 	  first[IDX(c,d)] = rand() % 100; second[IDX(c,d)] = rand() % 100; multiply[IDX(c,d)] = 0;
-	// 		//   }
-	// 		// }
-	// 	 //  parallelSum(first, second, multiply);
-
-	// 	  printf("freeing memory\n");
-	// 	  numa_free(first, ndim * ndim * sizeof(double));
-	// 	  numa_free(second, ndim * ndim * sizeof(double));
-	// 	  numa_free(multiply, ndim * ndim * sizeof(double));
-	// 	}
-	// 	ndim *= 2;
-	// }
-
-
-	// return;
-
-
-
 	for (c = 0 ; c < ndim; c++)
 	{
 	  for (d = 0 ; d < ndim; d++)
 	  {
-	    first[IDX(c,d)] = rand() % 100; //int between 0 - 100
+	    first[IDX(c,d)] = rand() % 100;
 	    second[IDX(c,d)] = rand() % 100;
 	    multiply[IDX(c,d)] = 0;
 	  }
